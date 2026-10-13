@@ -67,7 +67,7 @@
             <input type="hidden" id="editingGroupName" value="">
 
             <label>대표 문구 (그룹 제목)</label>
-            <input type="text" id="groupTitleInput" placeholder="예: 다이소 품절 대란! 압축파우치 추천 TOP 3">
+            <input type="text" id="groupTitleInput" placeholder="그룹 링크 상단에 문구가 노출됩니다.">
 
             <label style="margin-top:15px; font-weight:bold; color:#ff4757;">링크 목록</label>
             <div id="productRowsContainer"></div>
@@ -159,7 +159,7 @@
             card.id = cardId;
             card.innerHTML = `
                 <label>상품명</label>
-                <input type="text" class="row-title" value="${titleVal}" placeholder="예: 모리보 5in1 여행용 압축 파우치">
+                <input type="text" class="row-title" value="${titleVal}" placeholder="버튼에 문구가 노출됩니다.">
                 <label>쿠팡 파트너스 링크</label>
                 <input type="text" class="row-link" value="${linkVal}" placeholder="https://link.coupang.com/...">
                 <label>상품 이미지 파일 ${imageVal ? '(변경하려면 새로 선택)' : ''}</label>
