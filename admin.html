@@ -14,7 +14,6 @@
         label { font-size: 12px; font-weight: bold; color: #666; margin-top: 10px; display: block; }
         input, select, button { width: 100%; padding: 10px; margin-top: 5px; border-radius: 6px; border: 1px solid #ccc; font-size: 14px; }
         
-        /* 탭 메뉴 스타일 */
         .tab-menu { display: flex; gap: 5px; margin-bottom: 20px; }
         .tab-btn { flex: 1; padding: 8px 4px; background: #ddd; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 12px; text-align: center; }
         .tab-btn.active { background: #ff4757; color: #fff; }
@@ -26,7 +25,6 @@
         .current-profile-img { width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 2px solid #ddd; background: #eee; }
         .file-box { border: 1px solid #ccc; border-radius: 6px; padding: 10px; background: #fafafa; margin-top: 5px; }
 
-        /* 그룹 등록 폼 안의 상품 아이템 카드 */
         .product-input-card { background: #f9f9f9; border: 1px solid #ddd; border-radius: 8px; padding: 12px; margin-top: 10px; position: relative; }
         .btn-remove-row { background: #333; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; margin-top: 8px; width: auto; float: right; }
         
@@ -44,9 +42,16 @@
         .admin-item-info { display: flex; align-items: center; gap: 10px; overflow: hidden; }
         .admin-thumb { width: 40px; height: 40px; border-radius: 4px; object-fit: cover; background: #ddd; flex-shrink: 0; }
         
+        .admin-btn-group { display: flex; gap: 4px; flex-shrink: 0; }
+        .btn-edit { background: #009432; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .btn-del { background: #333; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+
+        /* 수정 모달 스타일 */
+        #editModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background: #fff; padding: 20px; border-radius: 10px; width: 90%; max-width: 400px; max-height: 90vh; overflow-y: auto; }
+        
         .analytics-item { display: flex; justify-content: space-between; align-items: center; background: #fff8f8; padding: 10px; border-radius: 6px; margin-bottom: 8px; border: 1px solid #ffdede; font-size: 13px; }
         .click-count { font-weight: bold; color: #ff4757; background: rgba(255,71,87,0.1); padding: 3px 8px; border-radius: 12px; }
-        .btn-del { background: #333; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; width: auto; font-size: 12px; flex-shrink: 0; }
     </style>
 </head>
 <body>
@@ -66,9 +71,7 @@
             <input type="text" id="groupTitleInput" placeholder="예: 다이소 품절 대란! 압축파우치 추천 TOP 3">
 
             <label style="margin-top:15px; font-weight:bold; color:#ff4757;">링크 목록</label>
-            <div id="productRowsContainer">
-                <!-- 동적으로 상품 입력줄이 추가되는 영역 -->
-            </div>
+            <div id="productRowsContainer"></div>
 
             <button class="btn-add-row" onclick="addProductRow()">+ 링크 추가</button>
             <button class="btn-add-group" onclick="saveGroupProducts()">🚀 그룹 상품 한 번에 등록하기</button>
@@ -76,7 +79,7 @@
             <hr style="margin: 25px 0;">
 
             <div class="item-list">
-                <h3>📋 등록된 상품 목록</h3>
+                <h3>📋 등록된 상품 목록 (수정/삭제)</h3>
                 <input type="text" id="searchInput" class="search-input" placeholder="🔍 상품명 또는 그룹 검색..." oninput="filterAdminList()">
                 <div id="admin-list"></div>
             </div>
@@ -107,6 +110,34 @@
             <div class="analytics-section" id="analytics-list">
                 <p style="font-size:12px; color:#888; text-align:center;">집계된 데이터가 없습니다.</p>
             </div>
+        </div>
+    </div>
+
+    <!-- ✏️ 상품 수정 모달 창 -->
+    <div id="editModal">
+        <div class="modal-content">
+            <h3>✏️ 상품 정보 수정</h3>
+            <input type="hidden" id="editId">
+            
+            <label>그룹 (대표 문구)</label>
+            <input type="text" id="editGroup">
+
+            <label>상품명</label>
+            <input type="text" id="editTitle">
+
+            <label>쿠팡 파트너스 링크</label>
+            <input type="text" id="editLink">
+
+            <label>상품 이미지 변경 (선택사항)</label>
+            <div class="file-box">
+                <input type="file" id="editFile" accept="image/*">
+            </div>
+            <div style="text-align:center; margin-top:10px;">
+                <img id="editThumbPreview" style="width:60px; height:60px; object-fit:cover; border-radius:4px;" src="">
+            </div>
+
+            <button class="btn-add" onclick="updateProductData()" style="margin-top:15px;">💾 수정 완료</button>
+            <button class="btn-profile" onclick="closeEditModal()" style="margin-top:8px; background:#666;">취소</button>
         </div>
     </div>
 
@@ -143,7 +174,6 @@
             }
         }
 
-        // 초기 상품 입력 줄 1개 생성
         window.onload = function() {
             addProductRow();
         };
@@ -168,7 +198,6 @@
             container.appendChild(card);
         }
 
-        // 그룹 상품 한 번에 파이어베이스에 푸시
         function saveGroupProducts() {
             const groupTitle = document.getElementById('groupTitleInput').value.trim();
             if (!groupTitle) {
@@ -182,17 +211,12 @@
                 return;
             }
 
-            let completedCount = 0;
             let hasError = false;
-
             cards.forEach(card => {
                 const title = card.querySelector('.row-title').value.trim();
                 const link = card.querySelector('.row-link').value.trim();
                 const fileInput = card.querySelector('.row-file');
-
-                if (!title || !link || fileInput.files.length === 0) {
-                    hasError = true;
-                }
+                if (!title || !link || fileInput.files.length === 0) hasError = true;
             });
 
             if (hasError) {
@@ -200,7 +224,7 @@
                 return;
             }
 
-            // 각 상품별로 읽어서 비동기 저장
+            let completedCount = 0;
             cards.forEach(card => {
                 const title = card.querySelector('.row-title').value.trim();
                 const link = card.querySelector('.row-link').value.trim();
@@ -221,9 +245,8 @@
                         if (completedCount === cards.length) {
                             alert('그룹 상품이 성공적으로 모두 등록되었습니다!');
                             document.getElementById('groupTitleInput').value = '';
-                            document.getElementById('productRowsContainer.innerHTML = ''');
                             document.getElementById('productRowsContainer').innerHTML = '';
-                            addProductRow(); // 빈 칸 1개 재생성
+                            addProductRow();
                         }
                     });
                 };
@@ -231,7 +254,69 @@
             });
         }
 
-        // 프로필 이미지 실시간 연동
+        // ✏️ 수정 모달 열기
+        function openEditModal(id) {
+            const item = allProductsData[id];
+            if (!item) return;
+
+            document.getElementById('editId').value = id;
+            document.getElementById('editGroup').value = item.group || '';
+            document.getElementById('editTitle').value = item.title || '';
+            document.getElementById('editLink').value = item.link || '';
+            document.getElementById('editThumbPreview').src = item.image || '';
+            document.getElementById('editFile').value = ''; // 파일 초기화
+
+            document.getElementById('editModal').style.display = 'flex';
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').style.display = 'none';
+        }
+
+        // 💾 수정 내용 저장
+        function updateProductData() {
+            const id = document.getElementById('editId').value;
+            const group = document.getElementById('editGroup').value.trim();
+            const title = document.getElementById('editTitle').value.trim();
+            const link = document.getElementById('editLink').value.trim();
+            const fileInput = document.getElementById('editFile');
+
+            if (!group || !title || !link) {
+                alert('그룹, 상품명, 링크는 필수 입력입니다!');
+                return;
+            }
+
+            const updateData = {
+                group: group,
+                title: title,
+                link: link
+            };
+
+            // 새 이미지를 선택한 경우에만 이미지 교체
+            if (fileInput.files.length > 0) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    updateData.image = e.target.result;
+                    db.ref('products/' + id).update(updateData, function(err) {
+                        if (err) alert('수정 실패: ' + err.message);
+                        else {
+                            alert('성공적으로 수정되었습니다!');
+                            closeEditModal();
+                        }
+                    });
+                };
+                reader.readAsDataURL(fileInput.files[0]);
+            } else {
+                db.ref('products/' + id).update(updateData, function(err) {
+                    if (err) alert('수정 실패: ' + err.message);
+                    else {
+                        alert('성공적으로 수정되었습니다!');
+                        closeEditModal();
+                    }
+                });
+            }
+        }
+
         db.ref('settings/profileImg').on('value', function(snapshot) {
             const url = snapshot.val();
             const imgEl = document.getElementById('currentProfileView');
@@ -296,7 +381,10 @@
                         <img src="${item.image || 'https://via.placeholder.com/40'}" class="admin-thumb" alt="썸네일">
                         <div><strong>[${item.group}]</strong> ${item.title}</div>
                     </div>
-                    <button class="btn-del" onclick="deleteProduct('${id}')">삭제</button>
+                    <div class="admin-btn-group">
+                        <button class="btn-edit" onclick="openEditModal('${id}')">수정</button>
+                        <button class="btn-del" onclick="deleteProduct('${id}')">삭제</button>
+                    </div>
                 `;
                 listDiv.appendChild(div);
             });
