@@ -21,15 +21,19 @@
         .tab-content { display: none; }
         .tab-content.active { display: block; }
 
+        /* 프로필 영역 스타일 */
+        .profile-preview-box { text-align: center; margin-bottom: 10px; }
+        .current-profile-img { width: 70px; height: 70px; border-radius: 50%; object-fit: cover; border: 2px solid #ddd; background: #eee; }
+
         /* 드래그 앤 드롭 박스 스타일 */
         .drop-zone {
             border: 2px dashed #ccc;
             border-radius: 6px;
-            padding: 15px;
+            padding: 12px;
             text-align: center;
             background: #fafafa;
             color: #666;
-            font-size: 13px;
+            font-size: 12px;
             margin-top: 5px;
             cursor: pointer;
             transition: 0.2s;
@@ -40,9 +44,9 @@
             color: #ff4757;
         }
         .drop-zone img {
-            max-width: 80px;
-            max-height: 80px;
-            margin-top: 8px;
+            max-width: 60px;
+            max-height: 60px;
+            margin-top: 5px;
             border-radius: 4px;
             object-fit: cover;
         }
@@ -54,10 +58,15 @@
         
         .search-input { margin-bottom: 15px; }
         .item-list, .analytics-section { margin-top: 15px; max-height: 400px; overflow-y: auto; padding-right: 5px; }
-        .admin-item { display: flex; justify-content: space-between; align-items: center; background: #fafafa; padding: 10px; border-radius: 6px; margin-bottom: 8px; border: 1px solid #eee; font-size: 13px; }
+        
+        /* 관리 목록 아이템 (썸네일 포함) */
+        .admin-item { display: flex; justify-content: space-between; align-items: center; background: #fafafa; padding: 8px 10px; border-radius: 6px; margin-bottom: 8px; border: 1px solid #eee; font-size: 13px; }
+        .admin-item-info { display: flex; align-items: center; gap: 10px; overflow: hidden; }
+        .admin-thumb { width: 40px; height: 40px; border-radius: 4px; object-fit: cover; background: #ddd; flex-shrink: 0; }
+        
         .analytics-item { display: flex; justify-content: space-between; align-items: center; background: #fff8f8; padding: 10px; border-radius: 6px; margin-bottom: 8px; border: 1px solid #ffdede; font-size: 13px; }
         .click-count { font-weight: bold; color: #ff4757; background: rgba(255,71,87,0.1); padding: 3px 8px; border-radius: 12px; }
-        .btn-del { background: #333; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; width: auto; font-size: 12px; }
+        .btn-del { background: #333; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; width: auto; font-size: 12px; flex-shrink: 0; }
         hr { border: 0; height: 1px; background: #eee; margin: 20px 0; }
     </style>
 </head>
@@ -71,9 +80,14 @@
         </div>
 
         <div id="tab-manage" class="tab-content active">
-            <label>프로필 이미지 (드래그 또는 파일 선택)</label>
+            <label>현재 프로필 이미지</label>
+            <div class="profile-preview-box">
+                <img id="currentProfileView" class="current-profile-img" src="" alt="프로필">
+            </div>
+
+            <label>프로필 이미지 변경 (드래그 또는 파일 선택)</label>
             <div id="profileDropZone" class="drop-zone">
-                📁 프로필 이미지를 여기에 드래그하거나 클릭하세요
+                📁 새 프로필 이미지를 여기에 드래그하거나 클릭하세요
                 <input type="file" id="profileFileInput" accept="image/*" style="display:none;">
                 <div id="profilePreview"></div>
             </div>
@@ -148,7 +162,17 @@
             }
         }
 
-        // 파일 Base64 변환 헬퍼
+        // 현재 프로필 이미지 불러오기
+        db.ref('settings/profileImg').on('value', function(snapshot) {
+            const url = snapshot.val();
+            const imgEl = document.getElementById('currentProfileView');
+            if (url) {
+                imgEl.src = url;
+            } else {
+                imgEl.src = 'https://via.placeholder.com/70?text=🔥';
+            }
+        });
+
         function convertFileToBase64(file, callback) {
             const reader = new FileReader();
             reader.onload = function(e) {
@@ -157,7 +181,6 @@
             reader.readAsDataURL(file);
         }
 
-        // 드래그 앤 드롭 이벤트 설정 함수
         function setupDropZone(dropZoneId, fileInputId, previewId, isProfile) {
             const dropZone = document.getElementById(dropZoneId);
             const fileInput = document.getElementById(fileInputId);
@@ -202,7 +225,6 @@
             }
         }
 
-        // 드래그 존 활성화 실행
         setupDropZone('profileDropZone', 'profileFileInput', 'profilePreview', true);
         setupDropZone('productDropZone', 'imageFileInput', 'productPreview', false);
 
@@ -245,9 +267,9 @@
                 clicks: 0 
             }, function(err) {
                 if(err) {
-                    alert('등록 실패: ' + err.message);
+                    alert('등록된 상품 추가 실패: ' + err.message);
                 } else {
-                    alert('성공적으로 등록되었습니다!');
+                    alert('상품이 성공적으로 등록되었습니다!');
                     document.getElementById('title').value = '';
                     document.getElementById('link').value = '';
                     productBase64 = "";
@@ -283,8 +305,13 @@
 
                 const div = document.createElement('div');
                 div.className = 'admin-item';
-                div.innerHTML = '<div><strong>[' + item.group + ']</strong> ' + item.title + '</div>' +
-                                '<button class="btn-del" onclick="deleteProduct(\'' + id + '\')">삭제</button>';
+                div.innerHTML = `
+                    <div class="admin-item-info">
+                        <img src="${item.image || 'https://via.placeholder.com/40'}" class="admin-thumb" alt="썸네일">
+                        <div><strong>[${item.group}]</strong> ${item.title}</div>
+                    </div>
+                    <button class="btn-del" onclick="deleteProduct('${id}')">삭제</button>
+                `;
                 listDiv.appendChild(div);
             });
 
@@ -302,8 +329,13 @@
             itemsArray.forEach(function(item) {
                 const div = document.createElement('div');
                 div.className = 'analytics-item';
-                div.innerHTML = '<div><strong>' + item.title + '</strong> <span style="font-size:11px; color:#888;">(' + item.group + ')</span></div>' +
-                                '<span class="click-count">🖱️ ' + (item.clicks || 0) + '회</span>';
+                div.innerHTML = `
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <img src="${item.image || 'https://via.placeholder.com/35'}" style="width:35px; height:35px; border-radius:4px; object-fit:cover;" alt="썸네일">
+                        <div><strong>${item.title}</strong> <span style="font-size:11px; color:#888;">(${item.group})</span></div>
+                    </div>
+                    <span class="click-count">🖱️ ${item.clicks || 0}회</span>
+                `;
                 analyticsDiv.appendChild(div);
             });
         }
