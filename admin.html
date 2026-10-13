@@ -56,10 +56,13 @@
         .layout-option input { display: none; }
         .layout-option.selected { border-color: #ff4757; background: #fff0f1; color: #ff4757; }
 
-        .color-picker-group { display: flex; gap: 10px; margin-top: 5px; }
-        .color-picker-item { flex: 1; display: flex; align-items: center; gap: 5px; background: #fafafa; border: 1px solid #ccc; padding: 6px; border-radius: 6px; }
-        .color-picker-item input[type="color"] { width: 30px; height: 30px; border: none; cursor: pointer; background: none; padding: 0; }
+        /* 그룹 제목 행 레이아웃 (제목 입력란 + 색상 피커 가로 정렬) */
+        .group-title-row { display: flex; gap: 8px; align-items: center; margin-top: 5px; }
+        .group-title-row input { margin-top: 0; flex-grow: 1; }
+        .inline-color-picker { display: flex; align-items: center; gap: 4px; font-size: 11px; color: #666; flex-shrink: 0; background: #fafafa; border: 1px solid #ccc; padding: 4px 8px; border-radius: 6px; height: 41px; }
+        .inline-color-picker input[type="color"] { width: 26px; height: 26px; border: none; cursor: pointer; background: none; padding: 0; margin-top: 0; }
 
+        /* 상품 입력 카드 내부 레이아웃 */
         .product-input-card { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 12px; margin-top: 10px; display: flex; align-items: center; gap: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); cursor: move; }
         .product-input-card.dragging { opacity: 0.4; background: #e4e4e4; }
 
@@ -74,6 +77,8 @@
         
         .card-fields { flex-grow: 1; display: flex; flex-direction: column; gap: 5px; }
         .card-fields input { margin-top: 0; padding: 7px; font-size: 13px; }
+        .title-input-row { display: flex; gap: 6px; align-items: center; }
+        .title-input-row input { flex-grow: 1; margin-top: 0; }
 
         .card-actions { display: flex; flex-direction: column; align-items: center; justify-content: space-between; height: 70px; flex-shrink: 0; }
         
@@ -142,18 +147,11 @@
                 <h3 id="formModeTitle">➕ 그룹 상품 등록</h3>
                 <input type="hidden" id="editingGroupName" value="">
 
-                <label>대표 문구 (그룹 제목)</label>
-                <input type="text" id="groupTitleInput" placeholder="그룹 링크 상단에 문구가 노출됩니다." oninput="updateLivePreview()">
-
-                <label style="margin-top:15px;">텍스트 색상 설정</label>
-                <div class="color-picker-group">
-                    <div class="color-picker-item">
-                        <span style="font-size:11px;">대표문구색</span>
-                        <input type="color" id="groupTextColor" value="#ff4757" onchange="updateLivePreview()">
-                    </div>
-                    <div class="color-picker-item">
-                        <span style="font-size:11px;">상품명색</span>
-                        <input type="color" id="productTextColor" value="#ffffff" onchange="updateLivePreview()">
+                <label>대표 문구 (그룹 제목) 및 색상</label>
+                <div class="group-title-row">
+                    <input type="text" id="groupTitleInput" placeholder="그룹 링크 상단에 문구가 노출됩니다." oninput="updateLivePreview()">
+                    <div class="inline-color-picker" title="대표문구 색상 선택">
+                        색상 <input type="color" id="groupTextColor" value="#ff4757" onchange="updateLivePreview()">
                     </div>
                 </div>
 
@@ -270,7 +268,6 @@
         function updateLivePreview() {
             const groupTitle = document.getElementById('groupTitleInput').value.trim() || '대표 문구를 입력하세요';
             const groupColor = document.getElementById('groupTextColor').value;
-            const productTextColor = document.getElementById('productTextColor').value;
 
             const titleEl = document.getElementById('prevGroupTitle');
             titleEl.innerText = groupTitle;
@@ -283,6 +280,7 @@
             const cards = document.querySelectorAll('.product-input-card');
             cards.forEach(card => {
                 const title = card.querySelector('.row-title').value.trim() || '상품명';
+                const textColor = card.querySelector('.row-textcolor').value;
                 const imgSrc = card.querySelector('.row-existing-image').value || '';
 
                 const itemCard = document.createElement('div');
@@ -295,13 +293,13 @@
                 itemCard.className = 'preview-item-card ' + cardClass;
                 itemCard.innerHTML = `
                     <img src="${imgSrc || 'https://via.placeholder.com/60'}" class="preview-item-img" alt="미리보기">
-                    <div class="preview-item-text" style="color: ${productTextColor};">${title}</div>
+                    <div class="preview-item-text" style="color: ${textColor};">${title}</div>
                 `;
                 wrap.appendChild(itemCard);
             });
         }
 
-        function addProductRow(titleVal = '', linkVal = '', imageVal = '', activeVal = true) {
+        function addProductRow(titleVal = '', linkVal = '', imageVal = '', textColorVal = '#ffffff', activeVal = true) {
             const container = document.getElementById('productRowsContainer');
             const uniqueId = 'row_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
             
@@ -324,7 +322,12 @@
                 <input type="hidden" class="row-existing-image" id="existingImg_${uniqueId}" value="${imageVal}">
 
                 <div class="card-fields">
-                    <input type="text" class="row-title" value="${titleVal}" placeholder="상품명 입력" oninput="updateLivePreview()">
+                    <div class="title-input-row">
+                        <input type="text" class="row-title" value="${titleVal}" placeholder="상품명 입력" oninput="updateLivePreview()">
+                        <div class="inline-color-picker" title="상품명 글자색">
+                            색상 <input type="color" class="row-textcolor" value="${textColorVal}" onchange="updateLivePreview()">
+                        </div>
+                    </div>
                     <input type="text" class="row-link" value="${linkVal}" placeholder="https://link.coupang.com/...">
                 </div>
 
@@ -417,7 +420,6 @@
         function saveGroupProducts() {
             const groupTitle = document.getElementById('groupTitleInput').value.trim();
             const groupColor = document.getElementById('groupTextColor').value;
-            const productTextColor = document.getElementById('productTextColor').value;
             const editingGroupName = document.getElementById('editingGroupName').value.trim();
 
             if (!groupTitle) {
@@ -456,6 +458,7 @@
             cards.forEach((card, index) => {
                 const title = card.querySelector('.row-title').value.trim();
                 const link = card.querySelector('.row-link').value.trim();
+                const productTextColor = card.querySelector('.row-textcolor').value;
                 const imgBase64 = card.querySelector('.row-existing-image').value;
                 const isActive = card.querySelector('.row-active').checked;
 
@@ -499,11 +502,10 @@
             if (groupItems.length > 0) {
                 if (groupItems[0].layout) setLayout(groupItems[0].layout);
                 if (groupItems[0].groupColor) document.getElementById('groupTextColor').value = groupItems[0].groupColor;
-                if (groupItems[0].productTextColor) document.getElementById('productTextColor').value = groupItems[0].productTextColor;
             }
 
             groupItems.forEach(item => {
-                addProductRow(item.title, item.link, item.image, item.active !== false);
+                addProductRow(item.title, item.link, item.image, item.productTextColor || '#ffffff', item.active !== false);
             });
 
             window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -518,7 +520,6 @@
             document.getElementById('productRowsContainer').innerHTML = '';
             setLayout('list');
             document.getElementById('groupTextColor').value = '#ff4757';
-            document.getElementById('productTextColor').value = '#ffffff';
             addProductRow();
         }
 
