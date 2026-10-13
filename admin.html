@@ -45,9 +45,9 @@
         </div>
 
         <div id="tab-manage" class="tab-content active">
-            <label>프로필 이미지 주소 (URL)</label>
-            <input type="text" id="profileUrlInput" placeholder="내 쇼츠 프로필 이미지 URL 입력">
-            <button class="btn-profile" onclick="updateProfile()">👤 프로필 이미지 변경하기</button>
+            <label>프로필 이미지 (파일 선택)</label>
+            <input type="file" id="profileFileInput" accept="image/*">
+            <button class="btn-profile" onclick="updateProfileImage()">👤 프로필 이미지 변경하기</button>
 
             <hr>
 
@@ -61,10 +61,10 @@
             <label>쿠팡 파트너스 링크</label>
             <input type="text" id="link" placeholder="https://link.coupang.com/...">
 
-            <label>이미지 주소 (URL)</label>
-            <input type="text" id="image" placeholder="상품 이미지 주소 붙여넣기">
+            <label>상품 이미지 (파일 선택)</label>
+            <input type="file" id="imageFileInput" accept="image/*">
 
-            <button class="btn-add" onclick="addProduct()">➕ 상품 등록하기</button>
+            <button class="btn-add" onclick="addProductWithFile()">➕ 상품 등록하기</button>
 
             <div class="item-list">
                 <h3>📋 등록된 상품 목록</h3>
@@ -112,40 +112,66 @@
             }
         }
 
-        db.ref('settings/profileImg').once('value', function(snapshot) {
-            if(snapshot.val()) {
-                document.getElementById('profileUrlInput').value = snapshot.val();
-            }
-        });
+        // 이미지 파일을 Base64 문자열로 변환하는 헬퍼 함수
+        function convertFileToBase64(file, callback) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                callback(e.target.result);
+            };
+            reader.readAsDataURL(file);
+        }
 
-        function updateProfile() {
-            const url = document.getElementById('profileUrlInput').value.trim();
-            db.ref('settings').set({ profileImg: url }, function(err) {
-                if(err) alert('변경 실패!');
-                else alert('프로필 이미지가 성공적으로 변경되었습니다!');
+        function updateProfileImage() {
+            const fileInput = document.getElementById('profileFileInput');
+            if (fileInput.files.length === 0) {
+                alert('변경할 프로필 이미지 파일을 선택해주세요!');
+                return;
+            }
+
+            convertFileToBase64(fileInput.files[0], function(base64Image) {
+                db.ref('settings').set({ profileImg: base64Image }, function(err) {
+                    if(err) alert('변경 실패!');
+                    else {
+                        alert('프로필 이미지가 성공적으로 변경되었습니다!');
+                        fileInput.value = '';
+                    }
+                });
             });
         }
 
-        function addProduct() {
+        function addProductWithFile() {
             const group = document.getElementById('group').value.trim();
             const title = document.getElementById('title').value.trim();
             const link = document.getElementById('link').value.trim();
-            const image = document.getElementById('image').value.trim();
+            const fileInput = document.getElementById('imageFileInput');
 
             if(!group || !title || !link) {
                 alert('그룹, 상품명, 링크는 필수 입력입니다!');
                 return;
             }
 
-            db.ref('products').push({ group: group, title: title, link: link, image: image, clicks: 0 }, function(err) {
-                if(err) {
-                    alert('등록 실패: ' + err.message);
-                } else {
-                    alert('성공적으로 등록되었습니다!');
-                    document.getElementById('title').value = '';
-                    document.getElementById('link').value = '';
-                    document.getElementById('image').value = '';
-                }
+            if(fileInput.files.length === 0) {
+                alert('상품 이미지 파일을 선택해주세요!');
+                return;
+            }
+
+            convertFileToBase64(fileInput.files[0], function(base64Image) {
+                db.ref('products').push({ 
+                    group: group, 
+                    title: title, 
+                    link: link, 
+                    image: base64Image, 
+                    clicks: 0 
+                }, function(err) {
+                    if(err) {
+                        alert('등록 실패: ' + err.message);
+                    } else {
+                        alert('성공적으로 등록되었습니다!');
+                        document.getElementById('title').value = '';
+                        document.getElementById('link').value = '';
+                        fileInput.value = '';
+                    }
+                });
             });
         }
 
