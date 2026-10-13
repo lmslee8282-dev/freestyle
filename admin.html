@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FreeStyle 관리자 UI</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <style>
+        * { box-sizing: border-box; font-family: sans-serif; }
+        body { background: #f4f4f9; padding: 20px; display: flex; justify-content: center; }
+        .admin-box { background: #fff; width: 100%; max-width: 500px; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        h2 { margin-bottom: 20px; text-align: center; color: #333; }
+        label { font-size: 12px; font-weight: bold; color: #666; margin-top: 10px; display: block; }
+        input, select, button { width: 100%; padding: 10px; margin-top: 5px; border-radius: 6px; border: 1px solid #ccc; font-size: 14px; }
+        button.btn-add { background: #ff4757; color: #fff; font-weight: bold; border: none; cursor: pointer; margin-top: 15px; }
+        button.btn-add:hover { background: #e03847; }
+        .item-list { margin-top: 30px; }
+        .admin-item { display: flex; justify-content: space-between; align-items: center; background: #fafafa; padding: 10px; border-radius: 6px; margin-bottom: 8px; border: 1px solid #eee; }
+        .btn-del { background: #333; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; width: auto; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="admin-box">
+        <h2>🛠️ 상품 관리자 화면</h2>
+
+        <label>그룹 (카테고리)</label>
+        <input type="text" id="group" placeholder="예: 🎃 10월 할로윈 TOP3, 🏠 자취 꿀템">
+
+        <label>상품 코드 (숫자)</label>
+        <input type="text" id="code" placeholder="예: 101">
+
+        <label>상품명</label>
+        <input type="text" id="title" placeholder="예: 할로윈 LED 호박등">
+
+        <label>쿠팡 파트너스 링크</label>
+        <input type="text" id="link" placeholder="https://link.coupang.com/...">
+
+        <label>이미지 URL (선택)</label>
+        <input type="text" id="image" placeholder="https://... (쿠팡 이미지 주소 우클릭 복사)">
+
+        <button class="btn-add" onclick="addProduct()">➕ 상품 등록하기</button>
+
+        <div class="item-list">
+            <h3>📋 등록된 상품 목록</h3>
+            <div id="admin-list"></div>
+        </div>
+    </div>
+
+    <script>
+        // ★ 본인의 Firebase 설정값으로 교체하세요! ★
+        const firebaseConfig = {
+            apiKey: "여기에_입력",
+            authDomain: "여기에_입력",
+            databaseURL: "https://프로젝트ID-default-rtdb.firebaseio.com",
+            projectId: "여기에_입력",
+            storageBucket: "여기에_입력",
+            messagingSenderId: "여기에_입력",
+            appId: "여기에_입력"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        // 상품 등록 함수
+        function addProduct() {
+            const group = document.getElementById('group').value.trim();
+            const code = document.getElementById('code').value.trim();
+            const title = document.getElementById('title').value.trim();
+            const link = document.getElementById('link').value.trim();
+            const image = document.getElementById('image').value.trim();
+
+            if(!group || !code || !title || !link) {
+                alert('이미지를 제외한 모든 항목을 입력해주세요!');
+                return;
+            }
+
+            db.ref('products').push({ group, code, title, link, image }, (err) => {
+                if(err) alert('등록 실패!');
+                else {
+                    alert('성공적으로 등록되었습니다!');
+                    document.getElementById('code').value = '';
+                    document.getElementById('title').value = '';
+                    document.getElementById('link').value = '';
+                    document.getElementById('image').value = '';
+                }
+            });
+        }
+
+        // 목록 표시 및 삭제 처리
+        db.ref('products').on('value', (snapshot) => {
+            const data = snapshot.val();
+            const listDiv = document.getElementById('admin-list');
+            listDiv.innerHTML = '';
+
+            if(!data) return;
+
+            Object.keys(data).forEach(id => {
+                const item = data[id];
+                const div = document.createElement('div');
+                div.className = 'admin-item';
+                div.innerHTML = `
+                    <div>
+                        <strong>[${item.group}]</strong> [${item.code}번] ${item.title}
+                    </div>
+                    <button class="btn-del" onclick="deleteProduct('${id}')">삭제</button>
+                `;
+                listDiv.appendChild(div);
+            });
+        });
+
+        function deleteProduct(id) {
+            if(confirm('정말 삭제하시겠습니까?')) {
+                db.ref('products/' + id).remove();
+            }
+        }
+    </script>
+</body>
+</html>
