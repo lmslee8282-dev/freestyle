@@ -23,7 +23,7 @@
         .group-container { margin-bottom: 30px; text-align: left; }
         .group-title { font-size: 16px; font-weight: bold; color: #ff4757; margin-bottom: 12px; border-bottom: 1px solid #333; padding-bottom: 6px; }
         
-        .item-card { background: #1e1e1e; border-radius: 12px; padding: 12px; margin-bottom: 12px; display: flex; align-items: center; gap: 12px; border: 1px solid #333; text-decoration: none; color: #fff; transition: 0.2s; }
+        .item-card { background: #1e1e1e; border-radius: 12px; padding: 12px; margin-bottom: 12px; display: flex; align-items: center; gap: 12px; border: 1px solid #333; text-decoration: none; color: #fff; transition: 0.2s; cursor: pointer; }
         .item-card:hover { transform: translateY(-2px); border-color: #ff4757; }
         .item-img { width: 60px; height: 60px; border-radius: 8px; object-fit: cover; background: #333; flex-shrink: 0; }
         .item-info { flex-grow: 1; overflow: hidden; }
@@ -34,7 +34,6 @@
 </head>
 <body>
     <div class="container">
-        <!-- 프로필 이미지 영역 -->
         <div id="profile-container">
             <div class="profile-img">🔥</div>
         </div>
@@ -74,7 +73,7 @@
             }
         });
 
-        // 상품 데이터 불러오기 (최신 등록순 정렬)
+        // 상품 데이터 불러오기
         db.ref('products').on('value', (snapshot) => {
             const data = snapshot.val();
             const container = document.getElementById('content-list');
@@ -86,7 +85,6 @@
             }
 
             const groups = {};
-            // Firebase에 등록된 역순(최신순)으로 배열 변환
             const keys = Object.keys(data).reverse();
 
             keys.forEach(id => {
@@ -96,17 +94,14 @@
                 groups[item.group].push(item);
             });
 
-            // 화면 렌더링
             Object.keys(groups).forEach(groupName => {
                 const groupDiv = document.createElement('div');
                 groupDiv.className = 'group-container';
                 groupDiv.innerHTML = `<div class="group-title">📂 ${groupName}</div>`;
 
                 groups[groupName].forEach(item => {
-                    const card = document.createElement('a');
+                    const card = document.createElement('div');
                     card.className = 'item-card';
-                    card.href = item.link;
-                    card.target = '_blank';
                     card.innerHTML = `
                         <img src="${item.image || 'https://via.placeholder.com/60'}" class="item-img" alt="상품 이미지">
                         <div class="item-info">
@@ -114,6 +109,13 @@
                             <div class="item-title">${item.title}</div>
                         </div>
                     `;
+                    // 클릭 시 카운트를 올리고 링크로 이동
+                    card.onclick = () => {
+                        const currentClicks = item.clicks || 0;
+                        db.ref('products/' + item.id).update({ clicks: currentClicks + 1 }, () => {
+                            window.open(item.link, '_blank');
+                        });
+                    };
                     groupDiv.appendChild(card);
                 });
                 container.appendChild(groupDiv);
