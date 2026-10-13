@@ -159,7 +159,7 @@
         const db = firebase.database();
 
         // 프로필 URL 불러오기
-        db.ref('settings/profileImg').once('value', (snapshot) => {
+        db.ref('settings/profileImg').once('value', function(snapshot) {
             if(snapshot.val()) {
                 document.getElementById('profileUrlInput').value = snapshot.val();
             }
@@ -167,7 +167,7 @@
 
         function updateProfile() {
             const url = document.getElementById('profileUrlInput').value.trim();
-            db.ref('settings').set({ profileImg: url }, (err) => {
+            db.ref('settings').set({ profileImg: url }, function(err) {
                 if(err) alert('변경 실패!');
                 else alert('프로필 이미지가 성공적으로 변경되었습니다!');
             });
@@ -185,7 +185,7 @@
                 return;
             }
 
-            db.ref('products').push({ group, code, title, link, image, clicks: 0 }, (err) => {
+            db.ref('products').push({ group: group, code: code, title: title, link: link, image: image, clicks: 0 }, function(err) {
                 if(err) {
                     alert('등록 실패: ' + err.message);
                 } else {
@@ -198,8 +198,8 @@
             });
         }
 
-        // 데이터 로드 (실시간 반영)
-        db.ref('products').on('value', (snapshot) => {
+        // 데이터 로드
+        db.ref('products').on('value', function(snapshot) {
             const data = snapshot.val();
             const listDiv = document.getElementById('admin-list');
             const analyticsDiv = document.getElementById('analytics-list');
@@ -213,28 +213,32 @@
 
             // 관리용 목록 (최신순)
             const keys = Object.keys(data).reverse();
-            keys.forEach(id => {
+            keys.forEach(function(id) {
                 const item = data[id];
                 const div = document.createElement('div');
                 div.className = 'admin-item';
-                div.innerHTML = `
-                    <div><strong>[${item.group}]</strong> [${item.code}번] ${item.title}</div>
-                    <button class="btn-del" onclick="deleteProduct('${id}')">삭제</button>
-                `;
+                div.innerHTML = '<div><strong>[' + item.group + ']</strong> [' + item.code + '번] ' + item.title + '</div>' +
+                                '<button class="btn-del" onclick="deleteProduct(\'' + id + '\')">삭제</button>';
                 listDiv.appendChild(div);
             });
 
             // 분석 통계용 (클릭 수 정렬)
-            const itemsArray = Object.keys(data).map(id => ({ id, ...data[id] }));
-            itemsArray.sort((a, b) => (b.clicks || 0) - (a.clicks || 0));
+            const itemsArray = [];
+            Object.keys(data).forEach(function(id) {
+                const obj = data[id];
+                obj.id = id;
+                itemsArray.push(obj);
+            });
 
-            itemsArray.forEach(item => {
+            itemsArray.sort(function(a, b) {
+                return (b.clicks || 0) - (a.clicks || 0);
+            });
+
+            itemsArray.forEach(function(item) {
                 const div = document.createElement('div');
                 div.className = 'analytics-item';
-                div.innerHTML = `
-                    <div><strong>[${item.code}번]</strong> ${item.title}</div>
-                    <span class="click-count">🖱️ ${item.clicks || 0}회</span>
-                `;
+                div.innerHTML = '<div><strong>[' + item.code + '번]</strong> ' + item.title + '</div>' +
+                                '<span class="click-count">🖱️ ' + (item.clicks || 0) + '회</span>';
                 analyticsDiv.appendChild(div);
             });
         });
@@ -251,7 +255,7 @@
         const db = firebase.database();
 
         // 프로필 URL 불러오기
-        db.ref('settings/profileImg').once('value', (snapshot) => {
+        db.ref('settings/profileImg').once('value', function(snapshot) {
             if(snapshot.val()) {
                 document.getElementById('profileUrlInput').value = snapshot.val();
             }
@@ -259,7 +263,7 @@
 
         function updateProfile() {
             const url = document.getElementById('profileUrlInput').value.trim();
-            db.ref('settings').set({ profileImg: url }, (err) => {
+            db.ref('settings').set({ profileImg: url }, function(err) {
                 if(err) alert('변경 실패!');
                 else alert('프로필 이미지가 성공적으로 변경되었습니다!');
             });
@@ -277,7 +281,7 @@
                 return;
             }
 
-            db.ref('products').push({ group, code, title, link, image, clicks: 0 }, (err) => {
+            db.ref('products').push({ group: group, code: code, title: title, link: link, image: image, clicks: 0 }, function(err) {
                 if(err) {
                     alert('등록 실패: ' + err.message);
                 } else {
@@ -290,8 +294,8 @@
             });
         }
 
-        // 데이터 로드 (실시간 반영)
-        db.ref('products').on('value', (snapshot) => {
+        // 데이터 로드
+        db.ref('products').on('value', function(snapshot) {
             const data = snapshot.val();
             const listDiv = document.getElementById('admin-list');
             const analyticsDiv = document.getElementById('analytics-list');
@@ -305,28 +309,32 @@
 
             // 관리용 목록 (최신순)
             const keys = Object.keys(data).reverse();
-            keys.forEach(id => {
+            keys.forEach(function(id) {
                 const item = data[id];
                 const div = document.createElement('div');
                 div.className = 'admin-item';
-                div.innerHTML = `
-                    <div><strong>[${item.group}]</strong> [${item.code}번] ${item.title}</div>
-                    <button class="btn-del" onclick="deleteProduct('${id}')">삭제</button>
-                `;
+                div.innerHTML = '<div><strong>[' + item.group + ']</strong> [' + item.code + '번] ' + item.title + '</div>' +
+                                '<button class="btn-del" onclick="deleteProduct(\'' + id + '\')">삭제</button>';
                 listDiv.appendChild(div);
             });
 
             // 분석 통계용 (클릭 수 정렬)
-            const itemsArray = Object.keys(data).map(id => ({ id, ...data[id] }));
-            itemsArray.sort((a, b) => (b.clicks || 0) - (a.clicks || 0));
+            const itemsArray = [];
+            Object.keys(data).forEach(function(id) {
+                const obj = data[id];
+                obj.id = id;
+                itemsArray.push(obj);
+            });
 
-            itemsArray.forEach(item => {
+            itemsArray.sort(function(a, b) {
+                return (b.clicks || 0) - (a.clicks || 0);
+            });
+
+            itemsArray.forEach(function(item) {
                 const div = document.createElement('div');
                 div.className = 'analytics-item';
-                div.innerHTML = `
-                    <div><strong>[${item.code}번]</strong> ${item.title}</div>
-                    <span class="click-count">🖱️ ${item.clicks || 0}회</span>
-                `;
+                div.innerHTML = '<div><strong>[' + item.code + '번]</strong> ' + item.title + '</div>' +
+                                '<span class="click-count">🖱️ ' + (item.clicks || 0) + '회</span>';
                 analyticsDiv.appendChild(div);
             });
         });
