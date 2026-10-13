@@ -11,7 +11,12 @@
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Apple SD Gothic Neo', sans-serif; }
         body { background-color: #121212; color: #fff; display: flex; justify-content: center; padding: 20px; min-height: 100vh; }
         .container { width: 100%; max-width: 480px; text-align: center; }
-        .profile-img { width: 80px; height: 80px; border-radius: 50%; background: #2a2a2a; margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; font-size: 30px; border: 2px solid #444; }
+        
+        .profile-img { 
+            width: 90px; height: 90px; border-radius: 50%; background: #2a2a2a; 
+            margin: 0 auto 12px; display: flex; align-items: center; justify-content: center; 
+            font-size: 32px; border: 2px solid #444; object-fit: cover; 
+        }
         h1 { font-size: 20px; margin-bottom: 5px; }
         p.sub { font-size: 13px; color: #888; margin-bottom: 25px; }
         
@@ -29,12 +34,14 @@
 </head>
 <body>
     <div class="container">
-        <div class="profile-img">🔥</div>
+        <!-- 프로필 이미지 영역 -->
+        <div id="profile-container">
+            <div class="profile-img">🔥</div>
+        </div>
         <h1>FreeStyle 꿀템 저장소</h1>
         <p class="sub">쇼츠 영상 속 제품 코드로 빠르게 찾아보세요!</p>
 
         <div id="content-list">
-            <!-- Firebase 데이터가 여기에 동적으로 로드됩니다 -->
             <p style="color:#666;">상품을 불러오는 중...</p>
         </div>
 
@@ -44,7 +51,7 @@
     <script>
         // ★ 본인의 Firebase 설정값으로 교체하세요! ★
         const firebaseConfig = {
-            apiKey: "AIzaSyCMy4vdbdLd26v8l2kGTsCW-IZaGklqwLs",
+  apiKey: "AIzaSyCMy4vdbdLd26v8l2kGTsCW-IZaGklqwLs",
   authDomain: "freestyle-db-becce.firebaseapp.com",
   projectId: "freestyle-db-becce",
   storageBucket: "freestyle-db-becce.firebasestorage.app",
@@ -56,7 +63,18 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // 데이터 불러오기
+        // 프로필 설정 불러오기
+        db.ref('settings/profileImg').on('value', (snapshot) => {
+            const url = snapshot.val();
+            const profileContainer = document.getElementById('profile-container');
+            if (url) {
+                profileContainer.innerHTML = `<img src="${url}" class="profile-img" alt="프로필 이미지">`;
+            } else {
+                profileContainer.innerHTML = `<div class="profile-img">🔥</div>`;
+            }
+        });
+
+        // 상품 데이터 불러오기 (최신 등록순 정렬)
         db.ref('products').on('value', (snapshot) => {
             const data = snapshot.val();
             const container = document.getElementById('content-list');
@@ -67,9 +85,11 @@
                 return;
             }
 
-            // 그룹별로 정렬
             const groups = {};
-            Object.keys(data).forEach(id => {
+            // Firebase에 등록된 역순(최신순)으로 배열 변환
+            const keys = Object.keys(data).reverse();
+
+            keys.forEach(id => {
                 const item = data[id];
                 item.id = id;
                 if (!groups[item.group]) groups[item.group] = [];
