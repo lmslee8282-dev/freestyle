@@ -25,19 +25,19 @@
         <h2>🛠️ 상품 관리자 화면</h2>
 
         <label>그룹 (카테고리)</label>
-        <input type="text" id="group" placeholder="예: 🎃 10월 할로윈 TOP3, 🏠 자취 꿀템">
+        <input type="text" id="group" placeholder="예: 10월 할로윈 꿀템 TOP 3">
 
         <label>상품 코드 (숫자)</label>
         <input type="text" id="code" placeholder="예: 101">
 
         <label>상품명</label>
-        <input type="text" id="title" placeholder="예: 할로윈 LED 호박등">
+        <input type="text" id="title" placeholder="예: 호박등">
 
         <label>쿠팡 파트너스 링크</label>
         <input type="text" id="link" placeholder="https://link.coupang.com/...">
 
-        <label>이미지 URL (선택)</label>
-        <input type="text" id="image" placeholder="https://... (쿠팡 이미지 주소 우클릭 복사)">
+        <label>이미지 주소 (URL)</label>
+        <input type="text" id="image" placeholder="쿠팡 이미지 주소 복사 붙여넣기">
 
         <button class="btn-add" onclick="addProduct()">➕ 상품 등록하기</button>
 
@@ -50,7 +50,7 @@
     <script>
         // ★ 본인의 Firebase 설정값으로 교체하세요! ★
         const firebaseConfig = {
-            apiKey: "AIzaSyCMy4vdbdLd26v8l2kGTsCW-IZaGklqwLs",
+  apiKey: "AIzaSyCMy4vdbdLd26v8l2kGTsCW-IZaGklqwLs",
   authDomain: "freestyle-db-becce.firebaseapp.com",
   projectId: "freestyle-db-becce",
   storageBucket: "freestyle-db-becce.firebasestorage.app",
@@ -71,13 +71,14 @@
             const image = document.getElementById('image').value.trim();
 
             if(!group || !code || !title || !link) {
-                alert('이미지를 제외한 모든 항목을 입력해주세요!');
+                alert('그룹, 코드, 상품명, 링크는 필수 입력입니다!');
                 return;
             }
 
             db.ref('products').push({ group, code, title, link, image }, (err) => {
-                if(err) alert('등록 실패!');
-                else {
+                if(err) {
+                    alert('등록 실패: ' + err.message);
+                } else {
                     alert('성공적으로 등록되었습니다!');
                     document.getElementById('code').value = '';
                     document.getElementById('title').value = '';
@@ -87,7 +88,7 @@
             });
         }
 
-        // 목록 표시 및 삭제 처리
+        // 목록 표시 및 삭제
         db.ref('products').on('value', (snapshot) => {
             const data = snapshot.val();
             const listDiv = document.getElementById('admin-list');
