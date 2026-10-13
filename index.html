@@ -49,136 +49,16 @@
 
     <script>
         // ★ 본인의 Firebase 설정값으로 교체하세요! ★
-        <!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FreeStyle 꿀템 저장소</title>
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Apple SD Gothic Neo', sans-serif; }
-        body { background-color: #121212; color: #fff; display: flex; justify-content: center; padding: 20px; min-height: 100vh; }
-        .container { width: 100%; max-width: 480px; text-align: center; }
-        
-        .profile-img { 
-            width: 90px; height: 90px; border-radius: 50%; background: #2a2a2a; 
-            margin: 0 auto 12px; display: flex; align-items: center; justify-content: center; 
-            font-size: 32px; border: 2px solid #444; object-fit: cover; 
-        }
-        h1 { font-size: 20px; margin-bottom: 5px; }
-        p.sub { font-size: 13px; color: #888; margin-bottom: 25px; }
-        
-        .group-container { margin-bottom: 30px; text-align: left; }
-        .group-title { font-size: 16px; font-weight: bold; color: #ff4757; margin-bottom: 12px; border-bottom: 1px solid #333; padding-bottom: 6px; }
-        
-        .item-card { background: #1e1e1e; border-radius: 12px; padding: 12px; margin-bottom: 12px; display: flex; align-items: center; gap: 12px; border: 1px solid #333; text-decoration: none; color: #fff; transition: 0.2s; cursor: pointer; }
-        .item-card:hover { transform: translateY(-2px); border-color: #ff4757; }
-        .item-img { width: 60px; height: 60px; border-radius: 8px; object-fit: cover; background: #333; flex-shrink: 0; }
-        .item-info { flex-grow: 1; overflow: hidden; }
-        .item-code { font-size: 11px; font-weight: bold; color: #ff4757; background: rgba(255,71,87,0.1); padding: 2px 6px; border-radius: 4px; display: inline-block; margin-bottom: 4px; }
-        .item-title { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .footer { margin-top: 40px; font-size: 11px; color: #555; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div id="profile-container">
-            <div class="profile-img">🔥</div>
-        </div>
-        <h1>FreeStyle 꿀템 저장소</h1>
-        <p class="sub">쇼츠 영상 속 제품 코드로 빠르게 찾아보세요!</p>
-
-        <div id="content-list">
-            <p style="color:#666;">상품을 불러오는 중...</p>
-        </div>
-
-        <div class="footer">© 2026 FreeStyle. All rights reserved.</div>
-    </div>
-
-    <script>
-        // ★ 본인의 Firebase 설정값으로 교체하세요! ★
         const firebaseConfig = {
-            apiKey: "여기에_입력",
-            authDomain: "여기에_입력",
-            databaseURL: "https://프로젝트ID-default-rtdb.firebaseio.com",
-            projectId: "여기에_입력",
-            storageBucket: "여기에_입력",
-            messagingSenderId: "여기에_입력",
-            appId: "여기에_입력"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
+  apiKey: "AIzaSyCMy4vdbdLd26v8l2kGTsCW-IZaGklqwLs",
+  authDomain: "freestyle-db-becce.firebaseapp.com",
+  projectId: "freestyle-db-becce",
+  storageBucket: "freestyle-db-becce.firebasestorage.app",
+  messagingSenderId: "811035384445",
+  appId: "1:811035384445:web:490ffeb5f09cb763f0ef14",
+  measurementId: "G-FY7T44KY7D"
+};
 
-        // 프로필 이미지 불러오기
-        db.ref('settings/profileImg').on('value', function(snapshot) {
-            const url = snapshot.val();
-            const profileContainer = document.getElementById('profile-container');
-            if (url) {
-                profileContainer.innerHTML = '<img src="' + url + '" class="profile-img" alt="프로필 이미지">';
-            } else {
-                profileContainer.innerHTML = '<div class="profile-img">🔥</div>';
-            }
-        });
-
-        // 클릭 수 올리고 링크 이동하는 함수
-        function handleItemClick(itemId, targetLink) {
-            db.ref('products/' + itemId + '/clicks').transaction(function(currentClicks) {
-                return (currentClicks || 0) + 1;
-            }, function() {
-                window.open(targetLink, '_blank');
-            });
-        }
-
-        // 상품 데이터 불러오기
-        db.ref('products').on('value', function(snapshot) {
-            const data = snapshot.val();
-            const container = document.getElementById('content-list');
-            container.innerHTML = '';
-
-            if (!data) {
-                container.innerHTML = '<p style="color:#666;">등록된 상품이 없습니다.</p>';
-                return;
-            }
-
-            const groups = {};
-            const keys = Object.keys(data).reverse();
-
-            keys.forEach(function(id) {
-                const item = data[id];
-                item.id = id;
-                if (!groups[item.group]) groups[item.group] = [];
-                groups[item.group].push(item);
-            });
-
-            Object.keys(groups).forEach(function(groupName) {
-                const groupDiv = document.createElement('div');
-                groupDiv.className = 'group-container';
-                groupDiv.innerHTML = '<div class="group-title">📂 ' + groupName + '</div>';
-
-                groups[groupName].forEach(function(item) {
-                    const card = document.createElement('div');
-                    card.className = 'item-card';
-                    card.innerHTML = 
-                        '<img src="' + (item.image || 'https://via.placeholder.com/60') + '" class="item-img" alt="상품 이미지">' +
-                        '<div class="item-info">' +
-                            '<span class="item-code">[' + item.code + '번]</span>' +
-                            '<div class="item-title">' + item.title + '</div>' +
-                        '</div>';
-                    
-                    card.onclick = function() {
-                        handleItemClick(item.id, item.link);
-                    };
-                    groupDiv.appendChild(card);
-                });
-                container.appendChild(groupDiv);
-            });
-        });
-    </script>
-</body>
-</html>
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
