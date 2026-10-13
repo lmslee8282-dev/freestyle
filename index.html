@@ -23,7 +23,6 @@
         .group-container { margin-bottom: 25px; text-align: left; }
         .group-title { font-size: 15px; font-weight: bold; color: #ff4757; margin-bottom: 10px; border-bottom: 1px solid #333; padding-bottom: 6px; }
         
-        /* 상품이 많아져도 보기 편한 세로 리스트 및 카드 스타일 */
         .item-card { background: #1e1e1e; border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; display: flex; align-items: center; gap: 12px; border: 1px solid #333; text-decoration: none; color: #fff; transition: 0.2s; cursor: pointer; }
         .item-card:hover { transform: translateY(-2px); border-color: #ff4757; }
         .item-img { width: 55px; height: 55px; border-radius: 8px; object-fit: cover; background: #333; flex-shrink: 0; }
@@ -63,7 +62,6 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // 프로필 이미지 불러오기
         db.ref('settings/profileImg').on('value', function(snapshot) {
             const url = snapshot.val();
             const profileContainer = document.getElementById('profile-container');
@@ -74,7 +72,6 @@
             }
         });
 
-        // 클릭 수 올리고 링크 이동하는 함수
         function handleItemClick(itemId, targetLink) {
             db.ref('products/' + itemId + '/clicks').transaction(function(currentClicks) {
                 return (currentClicks || 0) + 1;
@@ -83,7 +80,7 @@
             });
         }
 
-        // 상품 데이터 불러오기 (상품 코드 제외 및 깔끔한 렌더링)
+        // 상품 데이터 불러오기 (그룹은 최신순, 그룹 내부는 등록 순서 유지)
         db.ref('products').on('value', function(snapshot) {
             const data = snapshot.val();
             const container = document.getElementById('content-list');
@@ -95,20 +92,28 @@
             }
 
             const groups = {};
-            const keys = Object.keys(data).reverse();
+            const groupOrder = []; // 그룹이 처음 등장한 순서(최신 등록 그룹이 위로 오도록 역순 배치용)
 
-            keys.forEach(function(id) {
+            // Firebase에 저장된 순서(오래된 것부터 최신 것 순)로 읽어오기
+            Object.keys(data).forEach(function(id) {
                 const item = data[id];
                 item.id = id;
-                if (!groups[item.group]) groups[item.group] = [];
+
+                if (!groups[item.group]) {
+                    groups[item.group] = [];
+                    groupOrder.push(item.group); // 그룹 등장 순서 기록
+                }
+                // 각 그룹 내부에 입력한 순서대로 차례대로 쌓임
                 groups[item.group].push(item);
             });
 
-            Object.keys(groups).forEach(function(groupName) {
+            // 그룹 전체 목록은 최근에 등록된 그룹이 맨 위로 오도록 역순(reverse) 정렬
+            groupOrder.reverse().forEach(function(groupName) {
                 const groupDiv = document.createElement('div');
                 groupDiv.className = 'group-container';
                 groupDiv.innerHTML = '<div class="group-title">📂 ' + groupName + '</div>';
 
+                // 그룹 내부의 상품들은 위에서부터 차례대로(작성한 순서대로) 출력
                 groups[groupName].forEach(function(item) {
                     const card = document.createElement('div');
                     card.className = 'item-card';
