@@ -13,60 +13,79 @@
         h2, h3 { margin-bottom: 15px; text-align: center; color: #333; }
         label { font-size: 12px; font-weight: bold; color: #666; margin-top: 10px; display: block; }
         input, select, button { width: 100%; padding: 10px; margin-top: 5px; border-radius: 6px; border: 1px solid #ccc; font-size: 14px; }
+        
+        /* 탭 메뉴 스타일 */
+        .tab-menu { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab-btn { flex: 1; padding: 10px; background: #ddd; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        .tab-btn.active { background: #ff4757; color: #fff; }
+        
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
         button.btn-add { background: #ff4757; color: #fff; font-weight: bold; border: none; cursor: pointer; margin-top: 15px; }
         button.btn-add:hover { background: #e03847; }
         button.btn-profile { background: #2f3542; color: #fff; font-weight: bold; border: none; cursor: pointer; margin-top: 10px; }
         button.btn-profile:hover { background: #57606f; }
-        .item-list, .analytics-section { margin-top: 30px; }
+        
+        .search-input { margin-bottom: 15px; }
+        .item-list, .analytics-section { margin-top: 15px; max-height: 400px; overflow-y: auto; padding-right: 5px; }
         .admin-item { display: flex; justify-content: space-between; align-items: center; background: #fafafa; padding: 10px; border-radius: 6px; margin-bottom: 8px; border: 1px solid #eee; font-size: 13px; }
         .analytics-item { display: flex; justify-content: space-between; align-items: center; background: #fff8f8; padding: 10px; border-radius: 6px; margin-bottom: 8px; border: 1px solid #ffdede; font-size: 13px; }
         .click-count { font-weight: bold; color: #ff4757; background: rgba(255,71,87,0.1); padding: 3px 8px; border-radius: 12px; }
         .btn-del { background: #333; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; width: auto; font-size: 12px; }
-        hr { border: 0; height: 1px; background: #eee; margin: 25px 0; }
+        hr { border: 0; height: 1px; background: #eee; margin: 20px 0; }
     </style>
 </head>
 <body>
     <div class="admin-box">
-        <h2>🛠️ 채널 설정 및 분석</h2>
+        <h2>🛠️ 채널 통합 관리자</h2>
 
-        <!-- 프로필 이미지 수정 섹션 -->
-        <label>프로필 이미지 주소 (URL)</label>
-        <input type="text" id="profileUrlInput" placeholder="내 쇼츠 프로필 이미지 URL 입력">
-        <button class="btn-profile" onclick="updateProfile()">👤 프로필 이미지 변경하기</button>
+        <!-- 상단 탭 메뉴 -->
+        <div class="tab-menu">
+            <button class="tab-btn active" onclick="switchTab('manage')">📦 상품 및 설정</button>
+            <button class="tab-btn" onclick="switchTab('analytics')">📊 분석 대시보드</button>
+        </div>
 
-        <hr>
+        <!-- [탭 1] 상품 등록 및 채널 설정 -->
+        <div id="tab-manage" class="tab-content active">
+            <label>프로필 이미지 주소 (URL)</label>
+            <input type="text" id="profileUrlInput" placeholder="내 쇼츠 프로필 이미지 URL 입력">
+            <button class="btn-profile" onclick="updateProfile()">👤 프로필 이미지 변경하기</button>
 
-        <!-- 분석 대시보드 섹션 -->
-        <div class="analytics-section">
-            <h3>📊 BEST 클릭 순위 (실시간)</h3>
-            <div id="analytics-list">
-                <p style="font-size:12px; color:#888; text-align:center;">집계된 데이터가 없습니다.</p>
+            <hr>
+
+            <h3>➕ 상품 등록</h3>
+            <label>그룹 (카테고리)</label>
+            <input type="text" id="group" placeholder="예: 🎃 10월 할로윈 꿀템 TOP 3">
+
+            <label>상품 코드 (숫자)</label>
+            <input type="text" id="code" placeholder="예: 101">
+
+            <label>상품명</label>
+            <input type="text" id="title" placeholder="예: 호박등">
+
+            <label>쿠팡 파트너스 링크</label>
+            <input type="text" id="link" placeholder="https://link.coupang.com/...">
+
+            <label>이미지 주소 (URL)</label>
+            <input type="text" id="image" placeholder="상품 이미지 주소 붙여넣기">
+
+            <button class="btn-add" onclick="addProduct()">➕ 상품 등록하기</button>
+
+            <div class="item-list">
+                <h3>📋 등록된 상품 목록</h3>
+                <input type="text" id="searchInput" class="search-input" placeholder="🔍 상품명 또는 그룹 검색..." oninput="filterAdminList()">
+                <div id="admin-list"></div>
             </div>
         </div>
 
-        <hr>
-
-        <h3>➕ 상품 등록</h3>
-        <label>그룹 (카테고리)</label>
-        <input type="text" id="group" placeholder="예: 🎃 10월 할로윈 꿀템 TOP 3">
-
-        <label>상품 코드 (숫자)</label>
-        <input type="text" id="code" placeholder="예: 101">
-
-        <label>상품명</label>
-        <input type="text" id="title" placeholder="예: 호박등">
-
-        <label>쿠팡 파트너스 링크</label>
-        <input type="text" id="link" placeholder="https://link.coupang.com/...">
-
-        <label>이미지 주소 (URL)</label>
-        <input type="text" id="image" placeholder="상품 이미지 주소 붙여넣기">
-
-        <button class="btn-add" onclick="addProduct()">➕ 상품 등록하기</button>
-
-        <div class="item-list">
-            <h3>📋 등록된 상품 목록 (관리)</h3>
-            <div id="admin-list"></div>
+        <!-- [탭 2] 분석 대시보드 -->
+        <div id="tab-analytics" class="tab-content">
+            <h3>📊 BEST 클릭 순위 (실시간)</h3>
+            <p style="font-size:11px; color:#888; text-align:center; margin-bottom:15px;">어떤 상품이 시청자들의 클릭을 많이 받았는지 확인하세요.</p>
+            <div class="analytics-section" id="analytics-list">
+                <p style="font-size:12px; color:#888; text-align:center;">집계된 데이터가 없습니다.</p>
+            </div>
         </div>
     </div>
 
@@ -84,6 +103,22 @@
 
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
+
+        let allProductsData = {};
+
+        // 탭 전환 함수
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+            if (tabName === 'manage') {
+                document.querySelectorAll('.tab-btn')[0].classList.add('active');
+                document.getElementById('tab-manage').classList.add('active');
+            } else {
+                document.querySelectorAll('.tab-btn')[1].classList.add('active');
+                document.getElementById('tab-analytics').classList.add('active');
+            }
+        }
 
         // 프로필 URL 불러오기
         db.ref('settings/profileImg').once('value', function(snapshot) {
@@ -125,23 +160,33 @@
             });
         }
 
-        // 데이터 로드
+        // 데이터 수신 및 렌더링
         db.ref('products').on('value', function(snapshot) {
-            const data = snapshot.val();
+            allProductsData = snapshot.val() || {};
+            renderLists();
+        });
+
+        function renderLists() {
             const listDiv = document.getElementById('admin-list');
             const analyticsDiv = document.getElementById('analytics-list');
             listDiv.innerHTML = '';
             analyticsDiv.innerHTML = '';
 
-            if(!data) {
+            if(Object.keys(allProductsData).length === 0) {
                 analyticsDiv.innerHTML = '<p style="font-size:12px; color:#888; text-align:center;">집계된 데이터가 없습니다.</p>';
                 return;
             }
 
-            // 관리용 목록 (최신순)
-            const keys = Object.keys(data).reverse();
+            // 검색 필터 적용
+            const keyword = document.getElementById('searchInput').value.toLowerCase();
+            const keys = Object.keys(allProductsData).reverse();
+
             keys.forEach(function(id) {
-                const item = data[id];
+                const item = allProductsData[id];
+                const textCheck = (item.group + ' ' + item.title + ' ' + item.code).toLowerCase();
+                
+                if (keyword && !textCheck.includes(keyword)) return;
+
                 const div = document.createElement('div');
                 div.className = 'admin-item';
                 div.innerHTML = '<div><strong>[' + item.group + ']</strong> [' + item.code + '번] ' + item.title + '</div>' +
@@ -151,8 +196,8 @@
 
             // 분석 통계용 (클릭 수 정렬)
             const itemsArray = [];
-            Object.keys(data).forEach(function(id) {
-                const obj = data[id];
+            Object.keys(allProductsData).forEach(function(id) {
+                const obj = allProductsData[id];
                 obj.id = id;
                 itemsArray.push(obj);
             });
@@ -164,11 +209,15 @@
             itemsArray.forEach(function(item) {
                 const div = document.createElement('div');
                 div.className = 'analytics-item';
-                div.innerHTML = '<div><strong>[' + item.code + '번]</strong> ' + item.title + '</div>' +
+                div.innerHTML = '<div><strong>[' + item.code + '번]</strong> ' + item.title + ' <span style="font-size:11px; color:#888;">(' + item.group + ')</span></div>' +
                                 '<span class="click-count">🖱️ ' + (item.clicks || 0) + '회</span>';
                 analyticsDiv.appendChild(div);
             });
-        });
+        }
+
+        function filterAdminList() {
+            renderLists();
+        }
 
         function deleteProduct(id) {
             if(confirm('정말 삭제하시겠습니까?')) {
