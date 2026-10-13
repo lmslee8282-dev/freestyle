@@ -112,32 +112,28 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // 프로필 설정 불러오기
-        db.ref('settings/profileImg').on('value', (snapshot) => {
+        // 프로필 이미지 불러오기
+        db.ref('settings/profileImg').on('value', function(snapshot) {
             const url = snapshot.val();
             const profileContainer = document.getElementById('profile-container');
             if (url) {
-                profileContainer.innerHTML = `<img src="${url}" class="profile-img" alt="프로필 이미지">`;
+                profileContainer.innerHTML = '<img src="' + url + '" class="profile-img" alt="프로필 이미지">';
             } else {
-                profileContainer.innerHTML = `<div class="profile-img">🔥</div>`;
+                profileContainer.innerHTML = '<div class="profile-img">🔥</div>';
             }
         });
 
-        // 상품 클릭 처리 함수 (안전한 동기식 처리)
-        function handleItemClick(itemId, targetLink, currentClicks) {
-            const newClickCount = (currentClicks || 0) + 1;
-            
-            // Firebase 트랜잭션 사용으로 안전하게 카운트 증가 후 페이지 이동
-            db.ref('products/' + itemId + '/clicks').transaction((clicks) => {
-                return (clicks || 0) + 1;
-            }, (error, committed) => {
-                // 저장 성공 여부와 상관없이 새 창으로 쿠팡 링크 열기
+        // 클릭 수 올리고 링크 이동하는 함수
+        function handleItemClick(itemId, targetLink) {
+            db.ref('products/' + itemId + '/clicks').transaction(function(currentClicks) {
+                return (currentClicks || 0) + 1;
+            }, function() {
                 window.open(targetLink, '_blank');
             });
         }
 
         // 상품 데이터 불러오기
-        db.ref('products').on('value', (snapshot) => {
+        db.ref('products').on('value', function(snapshot) {
             const data = snapshot.val();
             const container = document.getElementById('content-list');
             container.innerHTML = '';
@@ -150,32 +146,30 @@
             const groups = {};
             const keys = Object.keys(data).reverse();
 
-            keys.forEach(id => {
+            keys.forEach(function(id) {
                 const item = data[id];
                 item.id = id;
                 if (!groups[item.group]) groups[item.group] = [];
                 groups[item.group].push(item);
             });
 
-            Object.keys(groups).forEach(groupName => {
+            Object.keys(groups).forEach(function(groupName) {
                 const groupDiv = document.createElement('div');
                 groupDiv.className = 'group-container';
-                groupDiv.innerHTML = `<div class="group-title">📂 ${groupName}</div>`;
+                groupDiv.innerHTML = '<div class="group-title">📂 ' + groupName + '</div>';
 
-                groups[groupName].forEach(item => {
+                groups[groupName].forEach(function(item) {
                     const card = document.createElement('div');
                     card.className = 'item-card';
-                    card.innerHTML = `
-                        <img src="${item.image || 'https://via.placeholder.com/60'}" class="item-img" alt="상품 이미지">
-                        <div class="item-info">
-                            <span class="item-code">[${item.code}번]</span>
-                            <div class="item-title">${item.title}</div>
-                        </div>
-                    `;
-                    // 안전한 클릭 이벤트 바인딩
-                    card.onclick = (e) => {
-                        e.preventDefault();
-                        handleItemClick(item.id, item.link, item.clicks);
+                    card.innerHTML = 
+                        '<img src="' + (item.image || 'https://via.placeholder.com/60') + '" class="item-img" alt="상품 이미지">' +
+                        '<div class="item-info">' +
+                            '<span class="item-code">[' + item.code + '번]</span>' +
+                            '<div class="item-title">' + item.title + '</div>' +
+                        '</div>';
+                    
+                    card.onclick = function() {
+                        handleItemClick(item.id, item.link);
                     };
                     groupDiv.appendChild(card);
                 });
@@ -188,32 +182,28 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // 프로필 설정 불러오기
-        db.ref('settings/profileImg').on('value', (snapshot) => {
+        // 프로필 이미지 불러오기
+        db.ref('settings/profileImg').on('value', function(snapshot) {
             const url = snapshot.val();
             const profileContainer = document.getElementById('profile-container');
             if (url) {
-                profileContainer.innerHTML = `<img src="${url}" class="profile-img" alt="프로필 이미지">`;
+                profileContainer.innerHTML = '<img src="' + url + '" class="profile-img" alt="프로필 이미지">';
             } else {
-                profileContainer.innerHTML = `<div class="profile-img">🔥</div>`;
+                profileContainer.innerHTML = '<div class="profile-img">🔥</div>';
             }
         });
 
-        // 상품 클릭 처리 함수 (안전한 동기식 처리)
-        function handleItemClick(itemId, targetLink, currentClicks) {
-            const newClickCount = (currentClicks || 0) + 1;
-            
-            // Firebase 트랜잭션 사용으로 안전하게 카운트 증가 후 페이지 이동
-            db.ref('products/' + itemId + '/clicks').transaction((clicks) => {
-                return (clicks || 0) + 1;
-            }, (error, committed) => {
-                // 저장 성공 여부와 상관없이 새 창으로 쿠팡 링크 열기
+        // 클릭 수 올리고 링크 이동하는 함수
+        function handleItemClick(itemId, targetLink) {
+            db.ref('products/' + itemId + '/clicks').transaction(function(currentClicks) {
+                return (currentClicks || 0) + 1;
+            }, function() {
                 window.open(targetLink, '_blank');
             });
         }
 
         // 상품 데이터 불러오기
-        db.ref('products').on('value', (snapshot) => {
+        db.ref('products').on('value', function(snapshot) {
             const data = snapshot.val();
             const container = document.getElementById('content-list');
             container.innerHTML = '';
@@ -226,32 +216,30 @@
             const groups = {};
             const keys = Object.keys(data).reverse();
 
-            keys.forEach(id => {
+            keys.forEach(function(id) {
                 const item = data[id];
                 item.id = id;
                 if (!groups[item.group]) groups[item.group] = [];
                 groups[item.group].push(item);
             });
 
-            Object.keys(groups).forEach(groupName => {
+            Object.keys(groups).forEach(function(groupName) {
                 const groupDiv = document.createElement('div');
                 groupDiv.className = 'group-container';
-                groupDiv.innerHTML = `<div class="group-title">📂 ${groupName}</div>`;
+                groupDiv.innerHTML = '<div class="group-title">📂 ' + groupName + '</div>';
 
-                groups[groupName].forEach(item => {
+                groups[groupName].forEach(function(item) {
                     const card = document.createElement('div');
                     card.className = 'item-card';
-                    card.innerHTML = `
-                        <img src="${item.image || 'https://via.placeholder.com/60'}" class="item-img" alt="상품 이미지">
-                        <div class="item-info">
-                            <span class="item-code">[${item.code}번]</span>
-                            <div class="item-title">${item.title}</div>
-                        </div>
-                    `;
-                    // 안전한 클릭 이벤트 바인딩
-                    card.onclick = (e) => {
-                        e.preventDefault();
-                        handleItemClick(item.id, item.link, item.clicks);
+                    card.innerHTML = 
+                        '<img src="' + (item.image || 'https://via.placeholder.com/60') + '" class="item-img" alt="상품 이미지">' +
+                        '<div class="item-info">' +
+                            '<span class="item-code">[' + item.code + '번]</span>' +
+                            '<div class="item-title">' + item.title + '</div>' +
+                        '</div>';
+                    
+                    card.onclick = function() {
+                        handleItemClick(item.id, item.link);
                     };
                     groupDiv.appendChild(card);
                 });
