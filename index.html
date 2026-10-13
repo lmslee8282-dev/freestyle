@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FreeStyle - 꿀템 저장소</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+        }
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            width: 100%;
+            max-width: 480px;
+            text-align: center;
+        }
+        .profile-img {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            background-color: #333;
+            margin: 0 auto 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            border: 2px solid #555;
+        }
+        h1 {
+            font-size: 20px;
+            margin-bottom: 8px;
+        }
+        p {
+            font-size: 14px;
+            color: #aaa;
+            margin-bottom: 30px;
+        }
+        .links {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .link-btn {
+            background-color: #1f1f1f;
+            color: #ffffff;
+            padding: 16px 20px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-size: 15px;
+            font-weight: 600;
+            border: 1px solid #333;
+            transition: all 0.2s ease;
+            display: block;
+            text-align: center;
+        }
+        .link-btn:hover {
+            background-color: #333333;
+            border-color: #777;
+            transform: translateY(-2px);
+        }
+        .link-btn.highlight {
+            background-color: #ff4757;
+            border-color: #ff4757;
+        }
+        .link-btn.highlight:hover {
+            background-color: #ff6b81;
+        }
+        .footer {
+            margin-top: 40px;
+            font-size: 12px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- 프로필 아이콘 또는 이미지 -->
+        <div class="profile-img">🔥</div>
+        <h1>FreeStyle 꿀템 저장소</h1>
+        <p>쇼츠 영상 속 추천 제품을 가장 빠르게 만나보세요!</p>
+
+        <div class="links">
+            <!-- 1위 제품 (가장 최신/추천 상품) -->
+            <a href="여기에_쿠팡링크_1번_입력" class="link-btn highlight" target="_blank">
+                🔥 [101번] 할로윈 LED 호박등 보러가기
+            </a>
+
+            <!-- 2위 제품 -->
+            <a href="여기에_쿠팡링크_2번_입력" class="link-btn" target="_blank">
+                🎃 [102번] 할로윈 빔 손전등 보러가기
+            </a>
+
+            <!-- 3위 제품 -->
+            <a href="여기에_쿠팡링크_3번_입력" class="link-btn" target="_blank">
+                🦇 [103번] 3초 완성 박쥐 망토 세트
+            </a>
+        </div>
+
+        <div class="footer">
+            © 2026 FreeStyle. All rights reserved.
+        </div>
+    </div>
+
+</body>
+</html>
