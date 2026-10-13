@@ -20,15 +20,16 @@
         h1 { font-size: 20px; margin-bottom: 5px; }
         p.sub { font-size: 13px; color: #888; margin-bottom: 25px; }
         
-        .group-container { margin-bottom: 30px; text-align: left; }
-        .group-title { font-size: 16px; font-weight: bold; color: #ff4757; margin-bottom: 12px; border-bottom: 1px solid #333; padding-bottom: 6px; }
+        .group-container { margin-bottom: 25px; text-align: left; }
+        .group-title { font-size: 15px; font-weight: bold; color: #ff4757; margin-bottom: 10px; border-bottom: 1px solid #333; padding-bottom: 6px; }
         
-        .item-card { background: #1e1e1e; border-radius: 12px; padding: 12px; margin-bottom: 12px; display: flex; align-items: center; gap: 12px; border: 1px solid #333; text-decoration: none; color: #fff; transition: 0.2s; cursor: pointer; }
+        /* 상품이 많아져도 보기 편한 세로 리스트 및 카드 스타일 */
+        .item-card { background: #1e1e1e; border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; display: flex; align-items: center; gap: 12px; border: 1px solid #333; text-decoration: none; color: #fff; transition: 0.2s; cursor: pointer; }
         .item-card:hover { transform: translateY(-2px); border-color: #ff4757; }
-        .item-img { width: 60px; height: 60px; border-radius: 8px; object-fit: cover; background: #333; flex-shrink: 0; }
+        .item-img { width: 55px; height: 55px; border-radius: 8px; object-fit: cover; background: #333; flex-shrink: 0; }
         .item-info { flex-grow: 1; overflow: hidden; }
-        .item-code { font-size: 11px; font-weight: bold; color: #ff4757; background: rgba(255,71,87,0.1); padding: 2px 6px; border-radius: 4px; display: inline-block; margin-bottom: 4px; }
-        .item-title { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .item-title { font-size: 14px; font-weight: 600; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis; }
+        
         .footer { margin-top: 40px; font-size: 11px; color: #555; }
     </style>
 </head>
@@ -38,7 +39,7 @@
             <div class="profile-img">🔥</div>
         </div>
         <h1>FreeStyle 꿀템 저장소</h1>
-        <p class="sub">쇼츠 영상 속 제품 코드로 빠르게 찾아보세요!</p>
+        <p class="sub">쇼츠 영상 속 추천 꿀템을 만나보세요!</p>
 
         <div id="content-list">
             <p style="color:#666;">상품을 불러오는 중...</p>
@@ -82,7 +83,7 @@
             });
         }
 
-        // 상품 데이터 불러오기
+        // 상품 데이터 불러오기 (상품 코드 제외 및 깔끔한 렌더링)
         db.ref('products').on('value', function(snapshot) {
             const data = snapshot.val();
             const container = document.getElementById('content-list');
@@ -112,9 +113,8 @@
                     const card = document.createElement('div');
                     card.className = 'item-card';
                     card.innerHTML = 
-                        '<img src="' + (item.image || 'https://via.placeholder.com/60') + '" class="item-img" alt="상품 이미지">' +
+                        '<img src="' + (item.image || 'https://via.placeholder.com/55') + '" class="item-img" alt="상품 이미지">' +
                         '<div class="item-info">' +
-                            '<span class="item-code">[' + item.code + '번]</span>' +
                             '<div class="item-title">' + item.title + '</div>' +
                         '</div>';
                     
