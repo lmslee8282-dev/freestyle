@@ -9,6 +9,27 @@
     <style>
         * { box-sizing: border-box; font-family: sans-serif; }
         body { background: #f4f4f9; padding: 20px; display: flex; justify-content: center; }
+        
+        /* 메인 레이아웃 (좌측 미리보기 + 우측 편집 영역 분할) */
+        .admin-wrapper { display: flex; gap: 20px; width: 100%; max-width: 950px; justify-content: center; align-items: flex-start; }
+        
+        /* 📱 실시간 모바일 미리보기 패널 */
+        .preview-pane { width: 280px; background: #222; border-radius: 30px; padding: 15px 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); border: 6px solid #444; position: sticky; top: 20px; }
+        .preview-screen { background: #121212; border-radius: 20px; height: 500px; overflow-y: auto; padding: 12px; color: #fff; font-size: 11px; }
+        .preview-screen::-webkit-scrollbar { width: 3px; }
+        .preview-screen::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
+        
+        .preview-profile { width: 45px; height: 45px; border-radius: 50%; background: #333; margin: 0 auto 8px; object-fit: cover; display: block; }
+        .preview-title { font-size: 13px; font-weight: bold; text-align: center; margin-bottom: 2px; }
+        .preview-group-box { background: #1e1e1e; border: 1px solid #333; border-radius: 6px; padding: 8px; margin-top: 10px; }
+        .preview-group-title { font-size: 11px; font-weight: bold; color: #ff4757; margin-bottom: 6px; border-bottom: 1px solid #333; padding-bottom: 3px; }
+        .preview-items-wrap { display: flex; gap: 6px; flex-wrap: wrap; }
+        .preview-item-card { background: #2a2a2a; border-radius: 4px; padding: 4px; text-align: center; width: 100%; }
+        .preview-item-card.col2 { width: calc(50% - 3px); }
+        .preview-item-img { width: 100%; height: 35px; border-radius: 3px; object-fit: cover; background: #444; }
+        .preview-item-text { font-size: 9px; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        /* 우측 편집 패널 */
         .admin-box { background: #fff; width: 100%; max-width: 600px; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
         h2, h3 { margin-bottom: 15px; text-align: center; color: #333; }
         label { font-size: 12px; font-weight: bold; color: #666; margin-top: 10px; display: block; }
@@ -25,66 +46,36 @@
         .current-profile-img { width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 2px solid #ddd; background: #eee; }
         .file-box { border: 1px solid #ccc; border-radius: 6px; padding: 10px; background: #fafafa; margin-top: 5px; }
 
-        /* 그룹 내 상품 카드 레이아웃 (스크린샷 스타일 반영) */
-        .product-input-card { 
-            background: #fff; 
-            border: 1px solid #ddd; 
-            border-radius: 8px; 
-            padding: 12px; 
-            margin-top: 10px; 
-            display: flex; 
-            align-items: center; 
-            gap: 10px; 
-            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-            cursor: move;
-        }
+        /* 레이아웃 선택 카드 스타일 (스크린샷 반영) */
+        .layout-selector { display: flex; gap: 8px; margin-top: 5px; }
+        .layout-option { flex: 1; border: 2px solid #ddd; border-radius: 8px; padding: 8px; text-align: center; cursor: pointer; background: #fafafa; font-size: 11px; font-weight: bold; }
+        .layout-option input { display: none; }
+        .layout-option.selected { border-color: #ff4757; background: #fff0f1; color: #ff4757; }
+
+        .product-input-card { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 12px; margin-top: 10px; display: flex; align-items: center; gap: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); cursor: move; }
         .product-input-card.dragging { opacity: 0.4; background: #e4e4e4; }
 
-        /* 드래그 핸들 (왼쪽 6개 점) */
         .drag-handle { font-size: 18px; color: #888; cursor: grab; padding: 0 4px; user-select: none; }
         .drag-handle:active { cursor: grabbing; }
 
-        /* 이미지 업로드 박스 */
-        .image-drop-zone {
-            width: 70px;
-            height: 70px;
-            border: 2px dashed #ccc;
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: #fafafa;
-            cursor: pointer;
-            position: relative;
-            overflow: hidden;
-            flex-shrink: 0;
-        }
+        .image-drop-zone { width: 70px; height: 70px; border: 2px dashed #ccc; border-radius: 6px; display: flex; align-items: center; justify-content: center; background: #fafafa; cursor: pointer; position: relative; overflow: hidden; flex-shrink: 0; }
         .image-drop-zone span.plus-icon { font-size: 20px; color: #aaa; }
         .image-drop-zone img { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; }
 
-        /* 이미지 삭제 버튼 */
-        .btn-delete-img {
-            position: absolute; bottom: 2px; right: 2px; width: 20px; height: 20px;
-            background: #ff4757; color: white; border: none; border-radius: 50%;
-            font-size: 9px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 5;
-        }
-
-        /* 입력 필드 묶음 */
+        .btn-delete-img { position: absolute; bottom: 2px; right: 2px; width: 20px; height: 20px; background: #ff4757; color: white; border: none; border-radius: 50%; font-size: 9px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 5; }
+        
         .card-fields { flex-grow: 1; display: flex; flex-direction: column; gap: 5px; }
         .card-fields input { margin-top: 0; padding: 7px; font-size: 13px; }
 
-        /* 오른쪽 하단 옵션 영역 (ON/OFF 스위치 + 휴지통) */
         .card-actions { display: flex; flex-direction: column; align-items: center; justify-content: space-between; height: 70px; flex-shrink: 0; }
         
-        /* ON/OFF 토글 스위치 스타일 */
         .switch { position: relative; display: inline-block; width: 40px; height: 22px; }
         .switch input { opacity: 0; width: 0; height: 0; }
         .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .3s; border-radius: 22px; }
         .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
-        input:checked + .slider { background-color: #2ed573; } /* 초록색 ON */
+        input:checked + .slider { background-color: #2ed573; }
         input:checked + .slider:before { transform: translateX(18px); }
 
-        /* 휴지통 삭제 버튼 */
         .btn-row-delete { background: none; border: none; font-size: 16px; cursor: pointer; color: #333; padding: 0; width: auto; margin-top: 5px; }
         .btn-row-delete:hover { color: #ff4757; }
 
@@ -112,69 +103,99 @@
     </style>
 </head>
 <body>
-    <div class="admin-box">
-        <h2>🛠️ 채널 통합 관리자</h2>
-
-        <div class="tab-menu">
-            <button class="tab-btn active" onclick="switchTab('manage')">📦 상품 관리</button>
-            <button class="tab-btn" onclick="switchTab('profile')">⚙️ 프로필 설정</button>
-            <button class="tab-btn" onclick="switchTab('analytics')">📊 분석 대시보드</button>
-        </div>
-
-        <!-- [탭 1] 그룹형 상품 등록 및 수정 관리 -->
-        <div id="tab-manage" class="tab-content active">
-            <h3 id="formModeTitle">➕ 그룹 상품 등록</h3>
-            <input type="hidden" id="editingGroupName" value="">
-
-            <label>대표 문구 (그룹 제목)</label>
-            <input type="text" id="groupTitleInput" placeholder="그룹 링크 상단에 문구가 노출됩니다.[cite: 3]">
-
-            <label style="margin-top:15px; font-weight:bold; color:#ff4757;">링크 목록</label>
-            <div id="productRowsContainer"></div>
-
-            <button class="btn-add-row" onclick="addProductRow()">+ 링크 추가</button>
-            <button class="btn-action" id="submitBtn" onclick="saveGroupProducts()">🚀 그룹 상품 한 번에 등록하기</button>
-            <button class="btn-action btn-cancel" id="cancelBtn" onclick="resetFormMode()" style="display:none;">취소 (신규 등록 모드로 전환)</button>
-
-            <hr style="margin: 25px 0;">
-
-            <div class="item-list">
-                <h3>📋 등록된 그룹 목록 (수정/삭제)</h3>
-                <input type="text" id="searchInput" class="search-input" placeholder="🔍 상품명 또는 그룹 검색..." oninput="filterAdminList()">
-                <div id="admin-list"></div>
+    <div class="admin-wrapper">
+        <!-- 📱 좌측 실시간 미리보기 패널[cite: 8] -->
+        <div class="preview-pane">
+            <div style="text-align:center; color:#888; font-size:10px; margin-bottom:6px;">LIVE PREVIEW</div>
+            <div class="preview-screen" id="livePreviewScreen">
+                <img id="prevProfileImg" class="preview-profile" src="" alt="프로필">
+                <div class="preview-title">FreeStyle 꿀템 저장소</div>
+                <div style="font-size:9px; color:#888; text-align:center; margin-bottom:10px;">쇼츠 속 꿀템 모음</div>
+                
+                <div class="preview-group-box">
+                    <div class="preview-group-title" id="prevGroupTitle">대표 문구를 입력하세요</div>
+                    <div class="preview-items-wrap" id="prevItemsWrap">
+                        <!-- 실시간 카드 렌더링 -->
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- [탭 2] 프로필 설정 -->
-        <div id="tab-profile" class="tab-content">
-            <h3>👤 프로필 설정</h3>
-            <p style="font-size:11px; color:#888; text-align:center; margin-bottom:20px;">메인 페이지 상단에 노출될 프로필 이미지를 관리합니다.[cite: 3]</p>
-            
-            <label style="text-align:center;">현재 프로필 이미지</label>
-            <div class="profile-preview-box">
-                <img id="currentProfileView" class="current-profile-img" src="" alt="프로필">
+        <!-- 우측 관리자 편집 패널 -->
+        <div class="admin-box">
+            <h2>🛠️ 채널 통합 관리자</h2>
+
+            <div class="tab-menu">
+                <button class="tab-btn active" onclick="switchTab('manage')">📦 상품 관리</button>
+                <button class="tab-btn" onclick="switchTab('profile')">⚙️ 프로필 설정</button>
+                <button class="tab-btn" onclick="switchTab('analytics')">📊 분석 대시보드</button>
             </div>
 
-            <label>새 프로필 이미지 선택</label>
-            <div class="file-box">
-                <input type="file" id="profileFileInput" accept="image/*">
+            <!-- [탭 1] 그룹형 상품 등록 및 수정 관리 -->
+            <div id="tab-manage" class="tab-content active">
+                <h3 id="formModeTitle">➕ 그룹 상품 등록</h3>
+                <input type="hidden" id="editingGroupName" value="">
+
+                <label>대표 문구 (그룹 제목)</label>
+                <input type="text" id="groupTitleInput" placeholder="그룹 링크 상단에 문구가 노출됩니다." oninput="updateLivePreview()">
+
+                <!-- 레이아웃 선택 옵션[cite: 8] -->
+                <label style="margin-top:15px;">레이아웃 배치 선택</label>
+                <div class="layout-selector">
+                    <label class="layout-option selected" id="layoutOpt_list" onclick="setLayout('list')">
+                        <input type="radio" name="layoutType" value="list" checked> ☰ 기본 배치
+                    </label>
+                    <label class="layout-option" id="layoutOpt_col2" onclick="setLayout('col2')">
+                        <input type="radio" name="layoutType" value="col2"> ▦ 2열 배치
+                    </label>
+                </div>
+
+                <label style="margin-top:15px; font-weight:bold; color:#ff4757;">링크 목록</label>
+                <div id="productRowsContainer"></div>
+
+                <button class="btn-add-row" onclick="addProductRow()">+ 링크 추가</button>
+                <button class="btn-action" id="submitBtn" onclick="saveGroupProducts()">🚀 그룹 상품 한 번에 등록하기</button>
+                <button class="btn-action btn-cancel" id="cancelBtn" onclick="resetFormMode()" style="display:none;">취소 (신규 등록 모드로 전환)</button>
+
+                <hr style="margin: 25px 0;">
+
+                <div class="item-list">
+                    <h3>📋 등록된 그룹 목록 (수정/삭제)</h3>
+                    <input type="text" id="searchInput" class="search-input" placeholder="🔍 상품명 또는 그룹 검색..." oninput="filterAdminList()">
+                    <div id="admin-list"></div>
+                </div>
             </div>
 
-            <button class="btn-profile" onclick="updateProfileImage()">💾 프로필 이미지 변경 저장하기</button>
-        </div>
+            <!-- [탭 2] 프로필 설정 -->
+            <div id="tab-profile" class="tab-content">
+                <h3>👤 프로필 설정</h3>
+                <p style="font-size:11px; color:#888; text-align:center; margin-bottom:20px;">메인 페이지 상단에 노출될 프로필 이미지를 관리합니다.</p>
+                
+                <label style="text-align:center;">현재 프로필 이미지</label>
+                <div class="profile-preview-box">
+                    <img id="currentProfileView" class="current-profile-img" src="" alt="프로필">
+                </div>
 
-        <!-- [탭 3] 분석 대시보드 -->
-        <div id="tab-analytics" class="tab-content">
-            <h3>📊 BEST 클릭 순위 (실시간)</h3>
-            <p style="font-size:11px; color:#888; text-align:center; margin-bottom:15px;">어떤 상품이 시청자들의 클릭을 많이 받았는지 확인하세요.[cite: 3]</p>
-            <div class="analytics-section" id="analytics-list">
-                <p style="font-size:12px; color:#888; text-align:center;">집계된 데이터가 없습니다.[cite: 3]</p>
+                <label>새 프로필 이미지 선택</label>
+                <div class="file-box">
+                    <input type="file" id="profileFileInput" accept="image/*">
+                </div>
+
+                <button class="btn-profile" onclick="updateProfileImage()">💾 프로필 이미지 변경 저장하기</button>
+            </div>
+
+            <!-- [탭 3] 분석 대시보드 -->
+            <div id="tab-analytics" class="tab-content">
+                <h3>📊 BEST 클릭 순위 (실시간)</h3>
+                <p style="font-size:11px; color:#888; text-align:center; margin-bottom:15px;">어떤 상품이 시청자들의 클릭을 많이 받았는지 확인하세요.</p>
+                <div class="analytics-section" id="analytics-list">
+                    <p style="font-size:12px; color:#888; text-align:center;">집계된 데이터가 없습니다.</p>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
-        // ★ 본인의 Firebase 설정값 ★
         const firebaseConfig = {
             apiKey: "AIzaSyCMy4vdbdLd26v8l2kGTsCW-IZaGklqwLs",
             authDomain: "freestyle-db-becce.firebaseapp.com",
@@ -189,6 +210,7 @@
         const db = firebase.database();
 
         let allProductsData = {};
+        let currentLayout = 'list'; // 기본 배치
 
         function switchTab(tabName) {
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
@@ -206,11 +228,42 @@
             }
         }
 
+        function setLayout(type) {
+            currentLayout = type;
+            document.querySelectorAll('.layout-option').forEach(opt => opt.classList.remove('selected'));
+            document.getElementById('layoutOpt_' + type).classList.add('selected');
+            document.querySelector(`input[value="${type}"]`).checked = true;
+            updateLivePreview();
+        }
+
         window.onload = function() {
             addProductRow();
+            updateLivePreview();
         };
 
-        // 상품 입력 행 추가 (드래그 순서 변경, ON/OFF 스위치, 휴지통 삭제 포함)[cite: 6]
+        // 📱 실시간 미리보기 업데이트 함수[cite: 8]
+        function updateLivePreview() {
+            const groupTitle = document.getElementById('groupTitleInput').value.trim() || '대표 문구를 입력하세요';
+            document.getElementById('prevGroupTitle').innerText = groupTitle;
+
+            const wrap = document.getElementById('prevItemsWrap');
+            wrap.innerHTML = '';
+
+            const cards = document.querySelectorAll('.product-input-card');
+            cards.forEach(card => {
+                const title = card.querySelector('.row-title').value.trim() || '상품명';
+                const imgSrc = card.querySelector('.row-existing-image').value || '';
+
+                const itemCard = document.createElement('div');
+                itemCard.className = 'preview-item-card ' + (currentLayout === 'col2' ? 'col2' : '');
+                itemCard.innerHTML = `
+                    <img src="${imgSrc || 'https://via.placeholder.com/60'}" class="preview-item-img" alt="미리보기">
+                    <div class="preview-item-text">${title}</div>
+                `;
+                wrap.appendChild(itemCard);
+            });
+        }
+
         function addProductRow(titleVal = '', linkVal = '', imageVal = '', activeVal = true) {
             const container = document.getElementById('productRowsContainer');
             const uniqueId = 'row_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
@@ -218,10 +271,10 @@
             const card = document.createElement('div');
             card.className = 'product-input-card';
             card.id = uniqueId;
-            card.draggable = true; // 드래그 가능 설정
+            card.draggable = true;
 
             card.innerHTML = `
-                <div class="drag-handle" title="마우스로 끌어서 순서 변경">⋮⋮</div>
+                <div class="drag-handle" title="순서 변경">⋮⋮</div>
                 
                 <div style="position: relative; flex-shrink: 0;">
                     <div class="image-drop-zone" id="dropZone_${uniqueId}">
@@ -234,40 +287,37 @@
                 <input type="hidden" class="row-existing-image" id="existingImg_${uniqueId}" value="${imageVal}">
 
                 <div class="card-fields">
-                    <input type="text" class="row-title" value="${titleVal}" placeholder="상품명 입력">
+                    <input type="text" class="row-title" value="${titleVal}" placeholder="상품명 입력" oninput="updateLivePreview()">
                     <input type="text" class="row-link" value="${linkVal}" placeholder="https://link.coupang.com/...">
                 </div>
 
                 <div class="card-actions">
-                    <label class="switch" title="게시 여부 (ON/OFF)">
+                    <label class="switch" title="게시 여부">
                         <input type="checkbox" class="row-active" ${activeVal ? 'checked' : ''}>
                         <span class="slider"></span>
                     </label>
-                    <button type="button" class="btn-row-delete" onclick="document.getElementById('${uniqueId}').remove()" title="상품 삭제">🗑️</button>
+                    <button type="button" class="btn-row-delete" onclick="document.getElementById('${uniqueId}').remove(); updateLivePreview();" title="삭제">🗑️</button>
                 </div>
             `;
             container.appendChild(card);
 
-            // 드래그 앤 드롭 순서 변경 이벤트 바인딩
-            card.addEventListener('dragstart', () => {
-                card.classList.add('dragging');
-            });
+            updateLivePreview();
+
+            // 드래그 앤 드롭 정렬 이벤트
+            card.addEventListener('dragstart', () => card.classList.add('dragging'));
             card.addEventListener('dragend', () => {
                 card.classList.remove('dragging');
+                updateLivePreview();
             });
 
             container.addEventListener('dragover', e => {
                 e.preventDefault();
                 const draggingCard = document.querySelector('.dragging');
                 const afterElement = getDragAfterElement(container, e.clientY);
-                if (afterElement == null) {
-                    container.appendChild(draggingCard);
-                } else {
-                    container.insertBefore(draggingCard, afterElement);
-                }
+                if (afterElement == null) container.appendChild(draggingCard);
+                else container.insertBefore(draggingCard, afterElement);
             });
 
-            // 이미지 업로드 바인딩
             const dropZone = document.getElementById(`dropZone_${uniqueId}`);
             const fileInput = document.getElementById(`fileInput_${uniqueId}`);
             const previewImg = document.getElementById(`previewImg_${uniqueId}`);
@@ -303,22 +353,19 @@
                     dropIcon.style.display = 'none';
                     delImgBtn.style.display = 'flex';
                     existingImgInput.value = base64Str;
+                    updateLivePreview();
                 };
                 reader.readAsDataURL(file);
             }
         }
 
-        // 드래그 위치 계산 헬퍼 함수
         function getDragAfterElement(container, y) {
             const draggableElements = [...container.querySelectorAll('.product-input-card:not(.dragging)')];
             return draggableElements.reduce((closest, child) => {
                 const box = child.getBoundingClientRect();
                 const offset = y - box.top - box.height / 2;
-                if (offset < 0 && offset > closest.offset) {
-                    return { offset: offset, element: child };
-                } else {
-                    return closest;
-                }
+                if (offset < 0 && offset > closest.offset) return { offset: offset, element: child };
+                else return closest;
             }, { offset: Number.NEGATIVE_INFINITY }).element;
         }
 
@@ -329,9 +376,9 @@
             document.getElementById(`delImgBtn_${uniqueId}`).style.display = 'none';
             document.getElementById(`existingImg_${uniqueId}`).value = '';
             document.getElementById(`fileInput_${uniqueId}`).value = '';
+            updateLivePreview();
         }
 
-        // 그룹 상품 등록 또는 수정 저장 (순서와 활성화 상태 포함)
         function saveGroupProducts() {
             const groupTitle = document.getElementById('groupTitleInput').value.trim();
             const editingGroupName = document.getElementById('editingGroupName').value.trim();
@@ -352,7 +399,6 @@
                 const title = card.querySelector('.row-title').value.trim();
                 const link = card.querySelector('.row-link').value.trim();
                 const existingImg = card.querySelector('.row-existing-image').value;
-
                 if (!title || !link || !existingImg) hasError = true;
             });
 
@@ -382,7 +428,8 @@
                     link: link,
                     image: imgBase64,
                     active: isActive,
-                    order: index, // 정렬 순서 저장
+                    layout: currentLayout, // 레이아웃 설정 저장
+                    order: index,
                     clicks: 0
                 }, function(err) {
                     processedCount++;
@@ -403,13 +450,16 @@
 
             document.getElementById('productRowsContainer').innerHTML = '';
 
-            // 순서대로 정렬하여 입력 폼에 불러오기
             const groupItems = [];
             Object.keys(allProductsData).forEach(id => {
                 const item = allProductsData[id];
                 if (item.group === groupName) groupItems.push(item);
             });
             groupItems.sort((a, b) => (a.order || 0) - (b.order || 0));
+
+            if (groupItems.length > 0 && groupItems[0].layout) {
+                setLayout(groupItems[0].layout);
+            }
 
             groupItems.forEach(item => {
                 addProductRow(item.title, item.link, item.image, item.active !== false);
@@ -425,14 +475,21 @@
             document.getElementById('submitBtn').innerText = '🚀 그룹 상품 한 번에 등록하기';
             document.getElementById('cancelBtn').style.display = 'none';
             document.getElementById('productRowsContainer').innerHTML = '';
+            setLayout('list');
             addProductRow();
         }
 
         db.ref('settings/profileImg').on('value', function(snapshot) {
             const url = snapshot.val();
             const imgEl = document.getElementById('currentProfileView');
-            if (url) imgEl.src = url;
-            else imgEl.src = 'https://via.placeholder.com/90?text=🔥';
+            const prevProfile = document.getElementById('prevProfileImg');
+            if (url) {
+                imgEl.src = url;
+                prevProfile.src = url;
+            } else {
+                imgEl.src = 'https://via.placeholder.com/90?text=🔥';
+                prevProfile.src = 'https://via.placeholder.com/45?text=🔥';
+            }
         });
 
         function updateProfileImage() {
@@ -467,7 +524,7 @@
             analyticsDiv.innerHTML = '';
 
             if(Object.keys(allProductsData).length === 0) {
-                analyticsDiv.innerHTML = '<p style="font-size:12px; color:#888; text-align:center;">집계된 데이터가 없습니다.[cite: 3]</p>';
+                analyticsDiv.innerHTML = '<p style="font-size:12px; color:#888; text-align:center;">집계된 데이터가 없습니다.</p>';
                 return;
             }
 
