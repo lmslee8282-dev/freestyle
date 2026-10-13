@@ -56,7 +56,6 @@
         .layout-option input { display: none; }
         .layout-option.selected { border-color: #ff4757; background: #fff0f1; color: #ff4757; }
 
-        /* 컬러 피커 커스텀 스타일 */
         .color-picker-group { display: flex; gap: 10px; margin-top: 5px; }
         .color-picker-item { flex: 1; display: flex; align-items: center; gap: 5px; background: #fafafa; border: 1px solid #ccc; padding: 6px; border-radius: 6px; }
         .color-picker-item input[type="color"] { width: 30px; height: 30px; border: none; cursor: pointer; background: none; padding: 0; }
@@ -113,7 +112,7 @@
 </head>
 <body>
     <div class="admin-wrapper">
-        <!-- 📱 좌측 실시간 미리보기 패널 -->
+        <!-- 📱 실시간 모바일 미리보기 패널 -->
         <div class="preview-pane">
             <div style="text-align:center; color:#888; font-size:10px; margin-bottom:6px;">LIVE PREVIEW</div>
             <div class="preview-screen" id="livePreviewScreen">
@@ -123,9 +122,7 @@
                 
                 <div class="preview-group-box">
                     <div class="preview-group-title" id="prevGroupTitle" style="color: #ff4757;">대표 문구를 입력하세요</div>
-                    <div class="preview-items-wrap" id="prevItemsWrap">
-                        <!-- 실시간 카드 렌더링 -->
-                    </div>
+                    <div class="preview-items-wrap" id="prevItemsWrap"></div>
                 </div>
             </div>
         </div>
@@ -148,7 +145,6 @@
                 <label>대표 문구 (그룹 제목)</label>
                 <input type="text" id="groupTitleInput" placeholder="그룹 링크 상단에 문구가 노출됩니다." oninput="updateLivePreview()">
 
-                <!-- 글자 색상 커스텀 설정 -->
                 <label style="margin-top:15px;">텍스트 색상 설정</label>
                 <div class="color-picker-group">
                     <div class="color-picker-item">
@@ -161,7 +157,6 @@
                     </div>
                 </div>
 
-                <!-- 레이아웃 배치 선택 -->
                 <label style="margin-top:15px;">레이아웃 배치 선택</label>
                 <div class="layout-selector">
                     <label class="layout-option selected" id="layoutOpt_list" onclick="setLayout('list')">
@@ -396,58 +391,3 @@
                     updateLivePreview();
                 };
                 reader.readAsDataURL(file);
-            }
-        }
-
-        function getDragAfterElement(container, y) {
-            const draggableElements = [...container.querySelectorAll('.product-input-card:not(.dragging)')];
-            return draggableElements.reduce((closest, child) => {
-                const box = child.getBoundingClientRect();
-                const offset = y - box.top - box.height / 2;
-                if (offset < 0 && offset > closest.offset) return { offset: offset, element: child };
-                else return closest;
-            }, { offset: Number.NEGATIVE_INFINITY }).element;
-        }
-
-        function removeImage(uniqueId) {
-            document.getElementById(`previewImg_${uniqueId}`).src = '';
-            document.getElementById(`previewImg_${uniqueId}`).style.display = 'none';
-            document.getElementById(`dropIcon_${uniqueId}`).style.display = 'block';
-            document.getElementById(`delImgBtn_${uniqueId}`).style.display = 'none';
-            document.getElementById(`existingImg_${uniqueId}`).value = '';
-            document.getElementById(`fileInput_${uniqueId}`).value = '';
-            updateLivePreview();
-        }
-
-        function saveGroupProducts() {
-            const groupTitle = document.getElementById('groupTitleInput').value.trim();
-            const groupColor = document.getElementById('groupTextColor').value;
-            const productTextColor = document.getElementById('productTextColor').value;
-            const editingGroupName = document.getElementById('editingGroupName').value.trim();
-
-            if (!groupTitle) {
-                alert('대표 문구(그룹 제목)를 입력해주세요!');
-                return;
-            }
-
-            const cards = document.querySelectorAll('.product-input-card');
-            if (cards.length === 0) {
-                alert('등록할 상품을 최소 1개 이상 추가해주세요!');
-                return;
-            }
-
-            let hasError = false;
-            cards.forEach(card => {
-                const title = card.querySelector('.row-title').value.trim();
-                const link = card.querySelector('.row-link').value.trim();
-                const existingImg = card.querySelector('.row-existing-image').value;
-                if (!title || !link || !existingImg) hasError = true;
-            });
-
-            if (hasError) {
-                alert('모든 상품의 상품명, 링크, 이미지를 빠짐없이 입력해주세요!');
-                return;
-            }
-
-            if (editingGroupName) {
-                Object.
