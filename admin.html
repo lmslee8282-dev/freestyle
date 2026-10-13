@@ -9,7 +9,7 @@
     <style>
         * { box-sizing: border-box; font-family: sans-serif; }
         body { background: #f4f4f9; padding: 20px; display: flex; justify-content: center; }
-        .admin-box { background: #fff; width: 100%; max-width: 550px; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .admin-box { background: #fff; width: 100%; max-width: 600px; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
         h2, h3 { margin-bottom: 15px; text-align: center; color: #333; }
         label { font-size: 12px; font-weight: bold; color: #666; margin-top: 10px; display: block; }
         input, select, button { width: 100%; padding: 10px; margin-top: 5px; border-radius: 6px; border: 1px solid #ccc; font-size: 14px; }
@@ -25,66 +25,70 @@
         .current-profile-img { width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 2px solid #ddd; background: #eee; }
         .file-box { border: 1px solid #ccc; border-radius: 6px; padding: 10px; background: #fafafa; margin-top: 5px; }
 
-        .product-input-card { background: #f9f9f9; border: 1px solid #ddd; border-radius: 8px; padding: 12px; margin-top: 10px; position: relative; }
-        .btn-remove-row { background: #333; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; margin-top: 8px; width: auto; float: right; }
-        
-        /* [+] 드래그 앤 드롭 업로드 박스 스타일 */
+        /* 그룹 내 상품 카드 레이아웃 (스크린샷 스타일 반영) */
+        .product-input-card { 
+            background: #fff; 
+            border: 1px solid #ddd; 
+            border-radius: 8px; 
+            padding: 12px; 
+            margin-top: 10px; 
+            display: flex; 
+            align-items: center; 
+            gap: 10px; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            cursor: move;
+        }
+        .product-input-card.dragging { opacity: 0.4; background: #e4e4e4; }
+
+        /* 드래그 핸들 (왼쪽 6개 점) */
+        .drag-handle { font-size: 18px; color: #888; cursor: grab; padding: 0 4px; user-select: none; }
+        .drag-handle:active { cursor: grabbing; }
+
+        /* 이미지 업로드 박스 */
         .image-drop-zone {
-            width: 80px;
-            height: 80px;
+            width: 70px;
+            height: 70px;
             border: 2px dashed #ccc;
-            border-radius: 8px;
+            border-radius: 6px;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: #fff;
+            background: #fafafa;
             cursor: pointer;
             position: relative;
             overflow: hidden;
-            margin-top: 5px;
-            transition: 0.2s;
+            flex-shrink: 0;
         }
-        .image-drop-zone:hover, .image-drop-zone.dragover {
-            border-color: #ff4757;
-            background: #fff0f1;
-        }
-        .image-drop-zone span.plus-icon {
-            font-size: 24px;
-            color: #aaa;
-        }
-        .image-drop-zone img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            position: absolute;
-            top: 0;
-            left: 0;
-        }
+        .image-drop-zone span.plus-icon { font-size: 20px; color: #aaa; }
+        .image-drop-zone img { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; }
 
-        /* 우측 하단 삭제(휴지통) 버튼 스타일 */
+        /* 이미지 삭제 버튼 */
         .btn-delete-img {
-            position: absolute;
-            bottom: 4px;
-            right: 4px;
-            width: 24px;
-            height: 24px;
-            background: #ff4757;
-            color: white;
-            border: none;
-            border-radius: 50%;
-            font-size: 11px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            z-index: 10;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-        }
-        .btn-delete-img:hover {
-            background: #e03847;
+            position: absolute; bottom: 2px; right: 2px; width: 20px; height: 20px;
+            background: #ff4757; color: white; border: none; border-radius: 50%;
+            font-size: 9px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 5;
         }
 
-        .btn-add-row { background: #2f3542; color: #fff; font-weight: bold; border: none; cursor: pointer; margin-top: 10px; font-size: 13px; }
+        /* 입력 필드 묶음 */
+        .card-fields { flex-grow: 1; display: flex; flex-direction: column; gap: 5px; }
+        .card-fields input { margin-top: 0; padding: 7px; font-size: 13px; }
+
+        /* 오른쪽 하단 옵션 영역 (ON/OFF 스위치 + 휴지통) */
+        .card-actions { display: flex; flex-direction: column; align-items: center; justify-content: space-between; height: 70px; flex-shrink: 0; }
+        
+        /* ON/OFF 토글 스위치 스타일 */
+        .switch { position: relative; display: inline-block; width: 40px; height: 22px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .3s; border-radius: 22px; }
+        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
+        input:checked + .slider { background-color: #2ed573; } /* 초록색 ON */
+        input:checked + .slider:before { transform: translateX(18px); }
+
+        /* 휴지통 삭제 버튼 */
+        .btn-row-delete { background: none; border: none; font-size: 16px; cursor: pointer; color: #333; padding: 0; width: auto; margin-top: 5px; }
+        .btn-row-delete:hover { color: #ff4757; }
+
+        .btn-add-row { background: #2f3542; color: #fff; font-weight: bold; border: none; cursor: pointer; margin-top: 12px; font-size: 13px; }
         .btn-add-row:hover { background: #57606f; }
         
         button.btn-action { background: #ff4757; color: #fff; font-weight: bold; border: none; cursor: pointer; margin-top: 20px; font-size: 15px; }
@@ -123,7 +127,7 @@
             <input type="hidden" id="editingGroupName" value="">
 
             <label>대표 문구 (그룹 제목)</label>
-            <input type="text" id="groupTitleInput" placeholder="그룹 링크 상단에 문구가 노출됩니다.">
+            <input type="text" id="groupTitleInput" placeholder="그룹 링크 상단에 문구가 노출됩니다.[cite: 3]">
 
             <label style="margin-top:15px; font-weight:bold; color:#ff4757;">링크 목록</label>
             <div id="productRowsContainer"></div>
@@ -144,7 +148,7 @@
         <!-- [탭 2] 프로필 설정 -->
         <div id="tab-profile" class="tab-content">
             <h3>👤 프로필 설정</h3>
-            <p style="font-size:11px; color:#888; text-align:center; margin-bottom:20px;">메인 페이지 상단에 노출될 프로필 이미지를 관리합니다.</p>
+            <p style="font-size:11px; color:#888; text-align:center; margin-bottom:20px;">메인 페이지 상단에 노출될 프로필 이미지를 관리합니다.[cite: 3]</p>
             
             <label style="text-align:center;">현재 프로필 이미지</label>
             <div class="profile-preview-box">
@@ -162,9 +166,9 @@
         <!-- [탭 3] 분석 대시보드 -->
         <div id="tab-analytics" class="tab-content">
             <h3>📊 BEST 클릭 순위 (실시간)</h3>
-            <p style="font-size:11px; color:#888; text-align:center; margin-bottom:15px;">어떤 상품이 시청자들의 클릭을 많이 받았는지 확인하세요.</p>
+            <p style="font-size:11px; color:#888; text-align:center; margin-bottom:15px;">어떤 상품이 시청자들의 클릭을 많이 받았는지 확인하세요.[cite: 3]</p>
             <div class="analytics-section" id="analytics-list">
-                <p style="font-size:12px; color:#888; text-align:center;">집계된 데이터가 없습니다.</p>
+                <p style="font-size:12px; color:#888; text-align:center;">집계된 데이터가 없습니다.[cite: 3]</p>
             </div>
         </div>
     </div>
@@ -172,15 +176,14 @@
     <script>
         // ★ 본인의 Firebase 설정값 ★
         const firebaseConfig = {
-  apiKey: "AIzaSyCMy4vdbdLd26v8l2kGTsCW-IZaGklqwLs",
-  authDomain: "freestyle-db-becce.firebaseapp.com",
-  projectId: "freestyle-db-becce",
-  storageBucket: "freestyle-db-becce.firebasestorage.app",
-  messagingSenderId: "811035384445",
-  appId: "1:811035384445:web:490ffeb5f09cb763f0ef14",
-  measurementId: "G-FY7T44KY7D"
-};
-
+            apiKey: "AIzaSyCMy4vdbdLd26v8l2kGTsCW-IZaGklqwLs",
+            authDomain: "freestyle-db-becce.firebaseapp.com",
+            projectId: "freestyle-db-becce",
+            storageBucket: "freestyle-db-becce.firebasestorage.app",
+            messagingSenderId: "811035384445",
+            appId: "1:811035384445:web:490ffeb5f09cb763f0ef14",
+            measurementId: "G-FY7T44KY7D"
+        };
 
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
@@ -207,37 +210,64 @@
             addProductRow();
         };
 
-        // 상품 입력 행 추가 (이미지 업로드 + 우측 하단 삭제 버튼 UI 적용)
-        function addProductRow(titleVal = '', linkVal = '', imageVal = '') {
+        // 상품 입력 행 추가 (드래그 순서 변경, ON/OFF 스위치, 휴지통 삭제 포함)[cite: 6]
+        function addProductRow(titleVal = '', linkVal = '', imageVal = '', activeVal = true) {
             const container = document.getElementById('productRowsContainer');
             const uniqueId = 'row_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
             
             const card = document.createElement('div');
             card.className = 'product-input-card';
             card.id = uniqueId;
+            card.draggable = true; // 드래그 가능 설정
+
             card.innerHTML = `
-                <label>상품명</label>
-                <input type="text" class="row-title" value="${titleVal}" placeholder="버튼에 문구가 노출됩니다.">
+                <div class="drag-handle" title="마우스로 끌어서 순서 변경">⋮⋮</div>
                 
-                <label>쿠팡 파트너스 링크</label>
-                <input type="text" class="row-link" value="${linkVal}" placeholder="https://link.coupang.com/...">
-                
-                <label>이미지</label>
-                <div style="position: relative; display: inline-block;">
+                <div style="position: relative; flex-shrink: 0;">
                     <div class="image-drop-zone" id="dropZone_${uniqueId}">
                         <span class="plus-icon" id="dropIcon_${uniqueId}" style="${imageVal ? 'display:none;' : ''}">+</span>
                         <input type="file" class="row-file" accept="image/*" style="display:none;" id="fileInput_${uniqueId}">
                         <img id="previewImg_${uniqueId}" src="${imageVal || ''}" style="${imageVal ? '' : 'display:none;'}">
                     </div>
-                    <button type="button" class="btn-delete-img" id="delImgBtn_${uniqueId}" style="${imageVal ? '' : 'display:none;'}" onclick="removeImage('${uniqueId}')">🗑️</button>
+                    <button type="button" class="btn-delete-img" id="delImgBtn_${uniqueId}" style="${imageVal ? '' : 'display:none;'}" onclick="removeImage('${uniqueId}')">✕</button>
                 </div>
                 <input type="hidden" class="row-existing-image" id="existingImg_${uniqueId}" value="${imageVal}">
 
-                <button class="btn-remove-row" onclick="document.getElementById('${uniqueId}').remove()">행 삭제</button>
-                <div style="clear:both;"></div>
+                <div class="card-fields">
+                    <input type="text" class="row-title" value="${titleVal}" placeholder="상품명 입력">
+                    <input type="text" class="row-link" value="${linkVal}" placeholder="https://link.coupang.com/...">
+                </div>
+
+                <div class="card-actions">
+                    <label class="switch" title="게시 여부 (ON/OFF)">
+                        <input type="checkbox" class="row-active" ${activeVal ? 'checked' : ''}>
+                        <span class="slider"></span>
+                    </label>
+                    <button type="button" class="btn-row-delete" onclick="document.getElementById('${uniqueId}').remove()" title="상품 삭제">🗑️</button>
+                </div>
             `;
             container.appendChild(card);
 
+            // 드래그 앤 드롭 순서 변경 이벤트 바인딩
+            card.addEventListener('dragstart', () => {
+                card.classList.add('dragging');
+            });
+            card.addEventListener('dragend', () => {
+                card.classList.remove('dragging');
+            });
+
+            container.addEventListener('dragover', e => {
+                e.preventDefault();
+                const draggingCard = document.querySelector('.dragging');
+                const afterElement = getDragAfterElement(container, e.clientY);
+                if (afterElement == null) {
+                    container.appendChild(draggingCard);
+                } else {
+                    container.insertBefore(draggingCard, afterElement);
+                }
+            });
+
+            // 이미지 업로드 바인딩
             const dropZone = document.getElementById(`dropZone_${uniqueId}`);
             const fileInput = document.getElementById(`fileInput_${uniqueId}`);
             const previewImg = document.getElementById(`previewImg_${uniqueId}`);
@@ -246,26 +276,15 @@
             const existingImgInput = document.getElementById(`existingImg_${uniqueId}`);
 
             dropZone.onclick = function(e) {
-                if (e.target !== delImgBtn) {
-                    fileInput.click();
-                }
+                if (e.target !== delImgBtn) fileInput.click();
             };
 
             fileInput.onchange = function(e) {
-                if (e.target.files.length > 0) {
-                    processFile(e.target.files[0]);
-                }
+                if (e.target.files.length > 0) processFile(e.target.files[0]);
             };
 
-            dropZone.ondragover = function(e) {
-                e.preventDefault();
-                dropZone.classList.add('dragover');
-            };
-
-            dropZone.ondragleave = function() {
-                dropZone.classList.remove('dragover');
-            };
-
+            dropZone.ondragover = function(e) { e.preventDefault(); dropZone.classList.add('dragover'); };
+            dropZone.ondragleave = function() { dropZone.classList.remove('dragover'); };
             dropZone.ondrop = function(e) {
                 e.preventDefault();
                 dropZone.classList.remove('dragover');
@@ -289,22 +308,30 @@
             }
         }
 
-        // 등록된 이미지 삭제 버튼 클릭 시 초기화
-        function removeImage(uniqueId) {
-            const previewImg = document.getElementById(`previewImg_${uniqueId}`);
-            const dropIcon = document.getElementById(`dropIcon_${uniqueId}`);
-            const delImgBtn = document.getElementById(`delImgBtn_${uniqueId}`);
-            const existingImgInput = document.getElementById(`existingImg_${uniqueId}`);
-            const fileInput = document.getElementById(`fileInput_${uniqueId}`);
-
-            previewImg.src = '';
-            previewImg.style.display = 'none';
-            dropIcon.style.display = 'block';
-            delImgBtn.style.display = 'none';
-            existingImgInput.value = '';
-            fileInput.value = '';
+        // 드래그 위치 계산 헬퍼 함수
+        function getDragAfterElement(container, y) {
+            const draggableElements = [...container.querySelectorAll('.product-input-card:not(.dragging)')];
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset: offset, element: child };
+                } else {
+                    return closest;
+                }
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
         }
 
+        function removeImage(uniqueId) {
+            document.getElementById(`previewImg_${uniqueId}`).src = '';
+            document.getElementById(`previewImg_${uniqueId}`).style.display = 'none';
+            document.getElementById(`dropIcon_${uniqueId}`).style.display = 'block';
+            document.getElementById(`delImgBtn_${uniqueId}`).style.display = 'none';
+            document.getElementById(`existingImg_${uniqueId}`).value = '';
+            document.getElementById(`fileInput_${uniqueId}`).value = '';
+        }
+
+        // 그룹 상품 등록 또는 수정 저장 (순서와 활성화 상태 포함)
         function saveGroupProducts() {
             const groupTitle = document.getElementById('groupTitleInput').value.trim();
             const editingGroupName = document.getElementById('editingGroupName').value.trim();
@@ -326,9 +353,7 @@
                 const link = card.querySelector('.row-link').value.trim();
                 const existingImg = card.querySelector('.row-existing-image').value;
 
-                if (!title || !link || !existingImg) {
-                    hasError = true;
-                }
+                if (!title || !link || !existingImg) hasError = true;
             });
 
             if (hasError) {
@@ -345,16 +370,19 @@
             }
 
             let processedCount = 0;
-            cards.forEach((card) => {
+            cards.forEach((card, index) => {
                 const title = card.querySelector('.row-title').value.trim();
                 const link = card.querySelector('.row-link').value.trim();
                 const imgBase64 = card.querySelector('.row-existing-image').value;
+                const isActive = card.querySelector('.row-active').checked;
 
                 db.ref('products').push({
                     group: groupTitle,
                     title: title,
                     link: link,
                     image: imgBase64,
+                    active: isActive,
+                    order: index, // 정렬 순서 저장
                     clicks: 0
                 }, function(err) {
                     processedCount++;
@@ -375,11 +403,16 @@
 
             document.getElementById('productRowsContainer').innerHTML = '';
 
+            // 순서대로 정렬하여 입력 폼에 불러오기
+            const groupItems = [];
             Object.keys(allProductsData).forEach(id => {
                 const item = allProductsData[id];
-                if (item.group === groupName) {
-                    addProductRow(item.title, item.link, item.image);
-                }
+                if (item.group === groupName) groupItems.push(item);
+            });
+            groupItems.sort((a, b) => (a.order || 0) - (b.order || 0));
+
+            groupItems.forEach(item => {
+                addProductRow(item.title, item.link, item.image, item.active !== false);
             });
 
             window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -398,11 +431,8 @@
         db.ref('settings/profileImg').on('value', function(snapshot) {
             const url = snapshot.val();
             const imgEl = document.getElementById('currentProfileView');
-            if (url) {
-                imgEl.src = url;
-            } else {
-                imgEl.src = 'https://via.placeholder.com/90?text=🔥';
-            }
+            if (url) imgEl.src = url;
+            else imgEl.src = 'https://via.placeholder.com/90?text=🔥';
         });
 
         function updateProfileImage() {
@@ -412,11 +442,9 @@
                 return;
             }
 
-            const file = fileInput.files[0];
             const reader = new FileReader();
             reader.onload = function(e) {
-                const base64Str = e.target.result;
-                db.ref('settings').set({ profileImg: base64Str }, function(err) {
+                db.ref('settings').set({ profileImg: e.target.result }, function(err) {
                     if(err) alert('변경 실패: ' + err.message);
                     else {
                         alert('프로필 이미지가 성공적으로 변경되었습니다!');
@@ -424,7 +452,7 @@
                     }
                 });
             };
-            reader.readAsDataURL(file);
+            reader.readAsDataURL(fileInput.files[0]);
         }
 
         db.ref('products').on('value', function(snapshot) {
@@ -439,7 +467,7 @@
             analyticsDiv.innerHTML = '';
 
             if(Object.keys(allProductsData).length === 0) {
-                analyticsDiv.innerHTML = '<p style="font-size:12px; color:#888; text-align:center;">집계된 데이터가 없습니다.</p>';
+                analyticsDiv.innerHTML = '<p style="font-size:12px; color:#888; text-align:center;">집계된 데이터가 없습니다.[cite: 3]</p>';
                 return;
             }
 
@@ -450,15 +478,12 @@
                 const item = allProductsData[id];
                 if (!groupsMap[item.group]) {
                     groupsMap[item.group] = item;
-                    groupsMap[item.group].id = id;
                 }
             });
 
             Object.keys(groupsMap).forEach(function(groupName) {
                 const item = groupsMap[groupName];
-                const textCheck = (groupName + ' ' + item.title).toLowerCase();
-                
-                if (keyword && !textCheck.includes(keyword)) return;
+                if (keyword && !groupName.toLowerCase().includes(keyword)) return;
 
                 const div = document.createElement('div');
                 div.className = 'admin-item';
@@ -482,9 +507,7 @@
                 itemsArray.push(obj);
             });
 
-            itemsArray.sort(function(a, b) {
-                return (b.clicks || 0) - (a.clicks || 0);
-            });
+            itemsArray.sort((a, b) => (b.clicks || 0) - (a.clicks || 0));
 
             itemsArray.forEach(function(item) {
                 const div = document.createElement('div');
@@ -500,9 +523,7 @@
             });
         }
 
-        function filterAdminList() {
-            renderLists();
-        }
+        function filterAdminList() { renderLists(); }
 
         function deleteGroup(groupName) {
             if(confirm(`'${groupName}' 그룹에 속한 모든 상품을 삭제하시겠습니까?`)) {
