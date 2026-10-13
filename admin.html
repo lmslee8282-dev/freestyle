@@ -144,7 +144,7 @@
         <!-- [탭 2] 프로필 설정 -->
         <div id="tab-profile" class="tab-content">
             <h3>👤 프로필 설정</h3>
-            <p style="font-size:11px; color:#888; text-align:center; margin-bottom:20px;">메인 페이지 상단에 노출될 프로필 이미지를 관리합니다.[cite: 3]</p>
+            <p style="font-size:11px; color:#888; text-align:center; margin-bottom:20px;">메인 페이지 상단에 노출될 프로필 이미지를 관리합니다.</p>
             
             <label style="text-align:center;">현재 프로필 이미지</label>
             <div class="profile-preview-box">
@@ -162,9 +162,9 @@
         <!-- [탭 3] 분석 대시보드 -->
         <div id="tab-analytics" class="tab-content">
             <h3>📊 BEST 클릭 순위 (실시간)</h3>
-            <p style="font-size:11px; color:#888; text-align:center; margin-bottom:15px;">어떤 상품이 시청자들의 클릭을 많이 받았는지 확인하세요.[cite: 3]</p>
+            <p style="font-size:11px; color:#888; text-align:center; margin-bottom:15px;">어떤 상품이 시청자들의 클릭을 많이 받았는지 확인하세요.</p>
             <div class="analytics-section" id="analytics-list">
-                <p style="font-size:12px; color:#888; text-align:center;">집계된 데이터가 없습니다.[cite: 3]</p>
+                <p style="font-size:12px; color:#888; text-align:center;">집계된 데이터가 없습니다.</p>
             </div>
         </div>
     </div>
@@ -207,7 +207,7 @@
             addProductRow();
         };
 
-        // 상품 입력 행 추가 (이미지 업로드 + 우측 하단 삭제 버튼 UI 적용)[cite: 5]
+        // 상품 입력 행 추가 (이미지 업로드 + 우측 하단 삭제 버튼 UI 적용)
         function addProductRow(titleVal = '', linkVal = '', imageVal = '') {
             const container = document.getElementById('productRowsContainer');
             const uniqueId = 'row_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
@@ -439,7 +439,7 @@
             analyticsDiv.innerHTML = '';
 
             if(Object.keys(allProductsData).length === 0) {
-                analyticsDiv.innerHTML = '<p style="font-size:12px; color:#888; text-align:center;">집계된 데이터가 없습니다.[cite: 3]</p>';
+                analyticsDiv.innerHTML = '<p style="font-size:12px; color:#888; text-align:center;">집계된 데이터가 없습니다.</p>';
                 return;
             }
 
