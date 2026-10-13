@@ -10,8 +10,7 @@
         * { box-sizing: border-box; font-family: sans-serif; }
         body { background: #f4f4f9; padding: 20px; display: flex; justify-content: center; }
         
-        /* 메인 레이아웃 (좌측 미리보기 + 우측 편집 영역 분할) */
-        .admin-wrapper { display: flex; gap: 20px; width: 100%; max-width: 950px; justify-content: center; align-items: flex-start; }
+        .admin-wrapper { display: flex; gap: 20px; width: 100%; max-width: 980px; justify-content: center; align-items: flex-start; }
         
         /* 📱 실시간 모바일 미리보기 패널 */
         .preview-pane { width: 280px; background: #222; border-radius: 30px; padding: 15px 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); border: 6px solid #444; position: sticky; top: 20px; }
@@ -23,9 +22,18 @@
         .preview-title { font-size: 13px; font-weight: bold; text-align: center; margin-bottom: 2px; }
         .preview-group-box { background: #1e1e1e; border: 1px solid #333; border-radius: 6px; padding: 8px; margin-top: 10px; }
         .preview-group-title { font-size: 11px; font-weight: bold; color: #ff4757; margin-bottom: 6px; border-bottom: 1px solid #333; padding-bottom: 3px; }
+        
         .preview-items-wrap { display: flex; gap: 6px; flex-wrap: wrap; }
-        .preview-item-card { background: #2a2a2a; border-radius: 4px; padding: 4px; text-align: center; width: 100%; }
+        .preview-items-wrap.carousel { display: flex; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; }
+        .preview-items-wrap.carousel::-webkit-scrollbar { height: 3px; }
+        .preview-items-wrap.carousel::-webkit-scrollbar-thumb { background: #555; }
+
+        .preview-item-card { background: #2a2a2a; border-radius: 4px; padding: 4px; text-align: center; width: 100%; flex-shrink: 0; }
         .preview-item-card.col2 { width: calc(50% - 3px); }
+        .preview-item-card.col3 { width: calc(33.333% - 4px); }
+        .preview-item-card.carousel1 { width: 75%; }
+        .preview-item-card.carousel2 { width: 50%; }
+
         .preview-item-img { width: 100%; height: 35px; border-radius: 3px; object-fit: cover; background: #444; }
         .preview-item-text { font-size: 9px; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
@@ -46,9 +54,9 @@
         .current-profile-img { width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 2px solid #ddd; background: #eee; }
         .file-box { border: 1px solid #ccc; border-radius: 6px; padding: 10px; background: #fafafa; margin-top: 5px; }
 
-        /* 레이아웃 선택 카드 스타일 (스크린샷 반영) */
-        .layout-selector { display: flex; gap: 8px; margin-top: 5px; }
-        .layout-option { flex: 1; border: 2px solid #ddd; border-radius: 8px; padding: 8px; text-align: center; cursor: pointer; background: #fafafa; font-size: 11px; font-weight: bold; }
+        /* 5가지 레이아웃 선택 옵션 그리드 */
+        .layout-selector { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; margin-top: 5px; }
+        .layout-option { border: 2px solid #ddd; border-radius: 6px; padding: 6px 2px; text-align: center; cursor: pointer; background: #fafafa; font-size: 10px; font-weight: bold; color: #555; }
         .layout-option input { display: none; }
         .layout-option.selected { border-color: #ff4757; background: #fff0f1; color: #ff4757; }
 
@@ -104,7 +112,7 @@
 </head>
 <body>
     <div class="admin-wrapper">
-        <!-- 📱 좌측 실시간 미리보기 패널[cite: 8] -->
+        <!-- 📱 좌측 실시간 미리보기 패널[cite: 7] -->
         <div class="preview-pane">
             <div style="text-align:center; color:#888; font-size:10px; margin-bottom:6px;">LIVE PREVIEW</div>
             <div class="preview-screen" id="livePreviewScreen">
@@ -139,14 +147,23 @@
                 <label>대표 문구 (그룹 제목)</label>
                 <input type="text" id="groupTitleInput" placeholder="그룹 링크 상단에 문구가 노출됩니다." oninput="updateLivePreview()">
 
-                <!-- 레이아웃 선택 옵션[cite: 8] -->
+                <!-- 5가지 레이아웃 선택 옵션[cite: 7] -->
                 <label style="margin-top:15px;">레이아웃 배치 선택</label>
                 <div class="layout-selector">
                     <label class="layout-option selected" id="layoutOpt_list" onclick="setLayout('list')">
-                        <input type="radio" name="layoutType" value="list" checked> ☰ 기본 배치
+                        <input type="radio" name="layoutType" value="list" checked> 기본 배치
                     </label>
                     <label class="layout-option" id="layoutOpt_col2" onclick="setLayout('col2')">
-                        <input type="radio" name="layoutType" value="col2"> ▦ 2열 배치
+                        <input type="radio" name="layoutType" value="col2"> 2열 배치
+                    </label>
+                    <label class="layout-option" id="layoutOpt_col3" onclick="setLayout('col3')">
+                        <input type="radio" name="layoutType" value="col3"> 3열 배치
+                    </label>
+                    <label class="layout-option" id="layoutOpt_carousel1" onclick="setLayout('carousel1')">
+                        <input type="radio" name="layoutType" value="carousel1"> 1캐러셀
+                    </label>
+                    <label class="layout-option" id="layoutOpt_carousel2" onclick="setLayout('carousel2')">
+                        <input type="radio" name="layoutType" value="carousel2"> 2캐러셀
                     </label>
                 </div>
 
@@ -241,12 +258,13 @@
             updateLivePreview();
         };
 
-        // 📱 실시간 미리보기 업데이트 함수[cite: 8]
+        // 📱 실시간 미리보기 업데이트 (5가지 레이아웃 스타일 반영)[cite: 7]
         function updateLivePreview() {
             const groupTitle = document.getElementById('groupTitleInput').value.trim() || '대표 문구를 입력하세요';
             document.getElementById('prevGroupTitle').innerText = groupTitle;
 
             const wrap = document.getElementById('prevItemsWrap');
+            wrap.className = 'preview-items-wrap ' + (currentLayout.includes('carousel') ? 'carousel' : '');
             wrap.innerHTML = '';
 
             const cards = document.querySelectorAll('.product-input-card');
@@ -255,7 +273,13 @@
                 const imgSrc = card.querySelector('.row-existing-image').value || '';
 
                 const itemCard = document.createElement('div');
-                itemCard.className = 'preview-item-card ' + (currentLayout === 'col2' ? 'col2' : '');
+                let cardClass = '';
+                if (currentLayout === 'col2') cardClass = 'col2';
+                else if (currentLayout === 'col3') cardClass = 'col3';
+                else if (currentLayout === 'carousel1') cardClass = 'carousel1';
+                else if (currentLayout === 'carousel2') cardClass = 'carousel2';
+
+                itemCard.className = 'preview-item-card ' + cardClass;
                 itemCard.innerHTML = `
                     <img src="${imgSrc || 'https://via.placeholder.com/60'}" class="preview-item-img" alt="미리보기">
                     <div class="preview-item-text">${title}</div>
@@ -303,7 +327,6 @@
 
             updateLivePreview();
 
-            // 드래그 앤 드롭 정렬 이벤트
             card.addEventListener('dragstart', () => card.classList.add('dragging'));
             card.addEventListener('dragend', () => {
                 card.classList.remove('dragging');
@@ -428,7 +451,7 @@
                     link: link,
                     image: imgBase64,
                     active: isActive,
-                    layout: currentLayout, // 레이아웃 설정 저장
+                    layout: currentLayout,
                     order: index,
                     clicks: 0
                 }, function(err) {
