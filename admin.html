@@ -9,23 +9,34 @@
     <style>
         * { box-sizing: border-box; font-family: sans-serif; }
         body { background: #f4f4f9; padding: 20px; display: flex; justify-content: center; }
-        .admin-box { background: #fff; width: 100%; max-width: 500px; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        h2 { margin-bottom: 20px; text-align: center; color: #333; }
+        .admin-box { background: #fff; width: 100%; max-width: 500px; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        h2, h3 { margin-bottom: 15px; text-align: center; color: #333; }
         label { font-size: 12px; font-weight: bold; color: #666; margin-top: 10px; display: block; }
         input, select, button { width: 100%; padding: 10px; margin-top: 5px; border-radius: 6px; border: 1px solid #ccc; font-size: 14px; }
         button.btn-add { background: #ff4757; color: #fff; font-weight: bold; border: none; cursor: pointer; margin-top: 15px; }
         button.btn-add:hover { background: #e03847; }
+        button.btn-profile { background: #2f3542; color: #fff; font-weight: bold; border: none; cursor: pointer; margin-top: 10px; }
+        button.btn-profile:hover { background: #57606f; }
         .item-list { margin-top: 30px; }
         .admin-item { display: flex; justify-content: space-between; align-items: center; background: #fafafa; padding: 10px; border-radius: 6px; margin-bottom: 8px; border: 1px solid #eee; }
         .btn-del { background: #333; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; width: auto; font-size: 12px; }
+        hr { border: 0; height: 1px; background: #eee; margin: 25px 0; }
     </style>
 </head>
 <body>
     <div class="admin-box">
-        <h2>🛠️ 상품 관리자 화면</h2>
+        <h2>🛠️ 채널 설정 및 관리</h2>
 
+        <!-- 프로필 이미지 수정 섹션 -->
+        <label>프로필 이미지 주소 (URL)</label>
+        <input type="text" id="profileUrlInput" placeholder="내 쇼츠 프로필 이미지 URL 입력">
+        <button class="btn-profile" onclick="updateProfile()">👤 프로필 이미지 변경하기</button>
+
+        <hr>
+
+        <h3>➕ 상품 등록</h3>
         <label>그룹 (카테고리)</label>
-        <input type="text" id="group" placeholder="예: 10월 할로윈 꿀템 TOP 3">
+        <input type="text" id="group" placeholder="예: 🎃 10월 할로윈 꿀템 TOP 3">
 
         <label>상품 코드 (숫자)</label>
         <input type="text" id="code" placeholder="예: 101">
@@ -37,12 +48,12 @@
         <input type="text" id="link" placeholder="https://link.coupang.com/...">
 
         <label>이미지 주소 (URL)</label>
-        <input type="text" id="image" placeholder="쿠팡 이미지 주소 복사 붙여넣기">
+        <input type="text" id="image" placeholder="상품 이미지 주소 붙여넣기">
 
         <button class="btn-add" onclick="addProduct()">➕ 상품 등록하기</button>
 
         <div class="item-list">
-            <h3>📋 등록된 상품 목록</h3>
+            <h3>📋 등록된 상품 목록 (최신순)</h3>
             <div id="admin-list"></div>
         </div>
     </div>
@@ -61,6 +72,22 @@
 
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
+
+        // 기존 프로필 URL 불러와서 입력창에 채워두기
+        db.ref('settings/profileImg').once('value', (snapshot) => {
+            if(snapshot.val()) {
+                document.getElementById('profileUrlInput').value = snapshot.val();
+            }
+        });
+
+        // 프로필 이미지 변경 함수
+        function updateProfile() {
+            const url = document.getElementById('profileUrlInput').value.trim();
+            db.ref('settings').set({ profileImg: url }, (err) => {
+                if(err) alert('변경 실패!');
+                else alert('프로필 이미지가 성공적으로 변경되었습니다!');
+            });
+        }
 
         // 상품 등록 함수
         function addProduct() {
@@ -88,7 +115,7 @@
             });
         }
 
-        // 목록 표시 및 삭제
+        // 목록 표시 및 삭제 (최신순 정렬)
         db.ref('products').on('value', (snapshot) => {
             const data = snapshot.val();
             const listDiv = document.getElementById('admin-list');
@@ -96,7 +123,9 @@
 
             if(!data) return;
 
-            Object.keys(data).forEach(id => {
+            const keys = Object.keys(data).reverse();
+
+            keys.forEach(id => {
                 const item = data[id];
                 const div = document.createElement('div');
                 div.className = 'admin-item';
