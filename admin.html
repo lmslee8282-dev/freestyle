@@ -48,7 +48,7 @@
             border-color: #ff4757;
             background: #fff0f1;
         }
-        .image-drop-zone span {
+        .image-drop-zone span.plus-icon {
             font-size: 24px;
             color: #aaa;
         }
@@ -59,6 +59,29 @@
             position: absolute;
             top: 0;
             left: 0;
+        }
+
+        /* 우측 하단 삭제(휴지통) 버튼 스타일 */
+        .btn-delete-img {
+            position: absolute;
+            bottom: 4px;
+            right: 4px;
+            width: 24px;
+            height: 24px;
+            background: #ff4757;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            font-size: 11px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 10;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
+        .btn-delete-img:hover {
+            background: #e03847;
         }
 
         .btn-add-row { background: #2f3542; color: #fff; font-weight: bold; border: none; cursor: pointer; margin-top: 10px; font-size: 13px; }
@@ -141,7 +164,7 @@
             <h3>📊 BEST 클릭 순위 (실시간)</h3>
             <p style="font-size:11px; color:#888; text-align:center; margin-bottom:15px;">어떤 상품이 시청자들의 클릭을 많이 받았는지 확인하세요.[cite: 3]</p>
             <div class="analytics-section" id="analytics-list">
-                <p style="font-size:12px; color:#888; text-align:center;">집계된 데이터가 없습니다.</p>
+                <p style="font-size:12px; color:#888; text-align:center;">집계된 데이터가 없습니다.[cite: 3]</p>
             </div>
         </div>
     </div>
@@ -184,10 +207,10 @@
             addProductRow();
         };
 
-        // 상품 입력 행 추가 (클릭 및 드래그 앤 드롭 업로드 UI 적용)
+        // 상품 입력 행 추가 (이미지 업로드 + 우측 하단 삭제 버튼 UI 적용)[cite: 5]
         function addProductRow(titleVal = '', linkVal = '', imageVal = '') {
             const container = document.getElementById('productRowsContainer');
-            const uniqueId = 'row_' + Date.now() + '_' + Math.random().toString(36.2);
+            const uniqueId = 'row_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
             
             const card = document.createElement('div');
             card.className = 'product-input-card';
@@ -200,27 +223,32 @@
                 <input type="text" class="row-link" value="${linkVal}" placeholder="https://link.coupang.com/...">
                 
                 <label>이미지</label>
-                <div class="image-drop-zone" id="dropZone_${uniqueId}">
-                    <span id="dropIcon_${uniqueId}">+</span>
-                    <input type="file" class="row-file" accept="image/*" style="display:none;" id="fileInput_${uniqueId}">
-                    <img id="previewImg_${uniqueId}" src="${imageVal || ''}" style="${imageVal ? '' : 'display:none;'}">
+                <div style="position: relative; display: inline-block;">
+                    <div class="image-drop-zone" id="dropZone_${uniqueId}">
+                        <span class="plus-icon" id="dropIcon_${uniqueId}" style="${imageVal ? 'display:none;' : ''}">+</span>
+                        <input type="file" class="row-file" accept="image/*" style="display:none;" id="fileInput_${uniqueId}">
+                        <img id="previewImg_${uniqueId}" src="${imageVal || ''}" style="${imageVal ? '' : 'display:none;'}">
+                    </div>
+                    <button type="button" class="btn-delete-img" id="delImgBtn_${uniqueId}" style="${imageVal ? '' : 'display:none;'}" onclick="removeImage('${uniqueId}')">🗑️</button>
                 </div>
                 <input type="hidden" class="row-existing-image" id="existingImg_${uniqueId}" value="${imageVal}">
 
-                <button class="btn-remove-row" onclick="document.getElementById('${uniqueId}').remove()">삭제</button>
+                <button class="btn-remove-row" onclick="document.getElementById('${uniqueId}').remove()">행 삭제</button>
                 <div style="clear:both;"></div>
             `;
             container.appendChild(card);
 
-            // 드래그 앤 드롭 및 클릭 이벤트 바인딩
             const dropZone = document.getElementById(`dropZone_${uniqueId}`);
             const fileInput = document.getElementById(`fileInput_${uniqueId}`);
             const previewImg = document.getElementById(`previewImg_${uniqueId}`);
             const dropIcon = document.getElementById(`dropIcon_${uniqueId}`);
+            const delImgBtn = document.getElementById(`delImgBtn_${uniqueId}`);
             const existingImgInput = document.getElementById(`existingImg_${uniqueId}`);
 
-            dropZone.onclick = function() {
-                fileInput.click();
+            dropZone.onclick = function(e) {
+                if (e.target !== delImgBtn) {
+                    fileInput.click();
+                }
             };
 
             fileInput.onchange = function(e) {
@@ -254,13 +282,29 @@
                     previewImg.src = base64Str;
                     previewImg.style.display = 'block';
                     dropIcon.style.display = 'none';
-                    existingImgInput.value = base64Str; // 새로 선택한 이미지 반영
+                    delImgBtn.style.display = 'flex';
+                    existingImgInput.value = base64Str;
                 };
                 reader.readAsDataURL(file);
             }
         }
 
-        // 그룹 상품 등록 또는 수정 저장
+        // 등록된 이미지 삭제 버튼 클릭 시 초기화
+        function removeImage(uniqueId) {
+            const previewImg = document.getElementById(`previewImg_${uniqueId}`);
+            const dropIcon = document.getElementById(`dropIcon_${uniqueId}`);
+            const delImgBtn = document.getElementById(`delImgBtn_${uniqueId}`);
+            const existingImgInput = document.getElementById(`existingImg_${uniqueId}`);
+            const fileInput = document.getElementById(`fileInput_${uniqueId}`);
+
+            previewImg.src = '';
+            previewImg.style.display = 'none';
+            dropIcon.style.display = 'block';
+            delImgBtn.style.display = 'none';
+            existingImgInput.value = '';
+            fileInput.value = '';
+        }
+
         function saveGroupProducts() {
             const groupTitle = document.getElementById('groupTitleInput').value.trim();
             const editingGroupName = document.getElementById('editingGroupName').value.trim();
@@ -292,7 +336,6 @@
                 return;
             }
 
-            // 수정 모드일 경우 기존 그룹 데이터 삭제 후 재등록
             if (editingGroupName) {
                 Object.keys(allProductsData).forEach(id => {
                     if (allProductsData[id].group === editingGroupName) {
@@ -323,7 +366,6 @@
             });
         }
 
-        // 특정 그룹 수정 모드로 전환
         function editGroup(groupName) {
             document.getElementById('editingGroupName').value = groupName;
             document.getElementById('groupTitleInput').value = groupName;
