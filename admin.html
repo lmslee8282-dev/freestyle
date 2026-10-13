@@ -25,9 +25,6 @@
         
         .preview-items-wrap { display: flex; gap: 6px; flex-wrap: wrap; }
         .preview-items-wrap.carousel { display: flex; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; }
-        .preview-items-wrap.carousel::-webkit-scrollbar { height: 3px; }
-        .preview-items-wrap.carousel::-webkit-scrollbar-thumb { background: #555; }
-
         .preview-item-card { background: #2a2a2a; border-radius: 4px; padding: 4px; text-align: center; width: 100%; flex-shrink: 0; }
         .preview-item-card.col2 { width: calc(50% - 3px); }
         .preview-item-card.col3 { width: calc(33.333% - 4px); }
@@ -54,11 +51,15 @@
         .current-profile-img { width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 2px solid #ddd; background: #eee; }
         .file-box { border: 1px solid #ccc; border-radius: 6px; padding: 10px; background: #fafafa; margin-top: 5px; }
 
-        /* 5가지 레이아웃 선택 옵션 그리드 */
         .layout-selector { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; margin-top: 5px; }
         .layout-option { border: 2px solid #ddd; border-radius: 6px; padding: 6px 2px; text-align: center; cursor: pointer; background: #fafafa; font-size: 10px; font-weight: bold; color: #555; }
         .layout-option input { display: none; }
         .layout-option.selected { border-color: #ff4757; background: #fff0f1; color: #ff4757; }
+
+        /* 컬러 피커 커스텀 스타일 */
+        .color-picker-group { display: flex; gap: 10px; margin-top: 5px; }
+        .color-picker-item { flex: 1; display: flex; align-items: center; gap: 5px; background: #fafafa; border: 1px solid #ccc; padding: 6px; border-radius: 6px; }
+        .color-picker-item input[type="color"] { width: 30px; height: 30px; border: none; cursor: pointer; background: none; padding: 0; }
 
         .product-input-card { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 12px; margin-top: 10px; display: flex; align-items: center; gap: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); cursor: move; }
         .product-input-card.dragging { opacity: 0.4; background: #e4e4e4; }
@@ -112,7 +113,7 @@
 </head>
 <body>
     <div class="admin-wrapper">
-        <!-- 📱 좌측 실시간 미리보기 패널[cite: 7] -->
+        <!-- 📱 좌측 실시간 미리보기 패널 -->
         <div class="preview-pane">
             <div style="text-align:center; color:#888; font-size:10px; margin-bottom:6px;">LIVE PREVIEW</div>
             <div class="preview-screen" id="livePreviewScreen">
@@ -121,7 +122,7 @@
                 <div style="font-size:9px; color:#888; text-align:center; margin-bottom:10px;">쇼츠 속 꿀템 모음</div>
                 
                 <div class="preview-group-box">
-                    <div class="preview-group-title" id="prevGroupTitle">대표 문구를 입력하세요</div>
+                    <div class="preview-group-title" id="prevGroupTitle" style="color: #ff4757;">대표 문구를 입력하세요</div>
                     <div class="preview-items-wrap" id="prevItemsWrap">
                         <!-- 실시간 카드 렌더링 -->
                     </div>
@@ -147,7 +148,20 @@
                 <label>대표 문구 (그룹 제목)</label>
                 <input type="text" id="groupTitleInput" placeholder="그룹 링크 상단에 문구가 노출됩니다." oninput="updateLivePreview()">
 
-                <!-- 5가지 레이아웃 선택 옵션[cite: 7] -->
+                <!-- 글자 색상 커스텀 설정 -->
+                <label style="margin-top:15px;">텍스트 색상 설정</label>
+                <div class="color-picker-group">
+                    <div class="color-picker-item">
+                        <span style="font-size:11px;">대표문구색</span>
+                        <input type="color" id="groupTextColor" value="#ff4757" onchange="updateLivePreview()">
+                    </div>
+                    <div class="color-picker-item">
+                        <span style="font-size:11px;">상품명색</span>
+                        <input type="color" id="productTextColor" value="#ffffff" onchange="updateLivePreview()">
+                    </div>
+                </div>
+
+                <!-- 레이아웃 배치 선택 -->
                 <label style="margin-top:15px;">레이아웃 배치 선택</label>
                 <div class="layout-selector">
                     <label class="layout-option selected" id="layoutOpt_list" onclick="setLayout('list')">
@@ -227,7 +241,7 @@
         const db = firebase.database();
 
         let allProductsData = {};
-        let currentLayout = 'list'; // 기본 배치
+        let currentLayout = 'list';
 
         function switchTab(tabName) {
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
@@ -258,10 +272,14 @@
             updateLivePreview();
         };
 
-        // 📱 실시간 미리보기 업데이트 (5가지 레이아웃 스타일 반영)[cite: 7]
         function updateLivePreview() {
             const groupTitle = document.getElementById('groupTitleInput').value.trim() || '대표 문구를 입력하세요';
-            document.getElementById('prevGroupTitle').innerText = groupTitle;
+            const groupColor = document.getElementById('groupTextColor').value;
+            const productTextColor = document.getElementById('productTextColor').value;
+
+            const titleEl = document.getElementById('prevGroupTitle');
+            titleEl.innerText = groupTitle;
+            titleEl.style.color = groupColor;
 
             const wrap = document.getElementById('prevItemsWrap');
             wrap.className = 'preview-items-wrap ' + (currentLayout.includes('carousel') ? 'carousel' : '');
@@ -282,7 +300,7 @@
                 itemCard.className = 'preview-item-card ' + cardClass;
                 itemCard.innerHTML = `
                     <img src="${imgSrc || 'https://via.placeholder.com/60'}" class="preview-item-img" alt="미리보기">
-                    <div class="preview-item-text">${title}</div>
+                    <div class="preview-item-text" style="color: ${productTextColor};">${title}</div>
                 `;
                 wrap.appendChild(itemCard);
             });
@@ -324,7 +342,6 @@
                 </div>
             `;
             container.appendChild(card);
-
             updateLivePreview();
 
             card.addEventListener('dragstart', () => card.classList.add('dragging'));
@@ -404,6 +421,8 @@
 
         function saveGroupProducts() {
             const groupTitle = document.getElementById('groupTitleInput').value.trim();
+            const groupColor = document.getElementById('groupTextColor').value;
+            const productTextColor = document.getElementById('productTextColor').value;
             const editingGroupName = document.getElementById('editingGroupName').value.trim();
 
             if (!groupTitle) {
@@ -431,189 +450,4 @@
             }
 
             if (editingGroupName) {
-                Object.keys(allProductsData).forEach(id => {
-                    if (allProductsData[id].group === editingGroupName) {
-                        db.ref('products/' + id).remove();
-                    }
-                });
-            }
-
-            let processedCount = 0;
-            cards.forEach((card, index) => {
-                const title = card.querySelector('.row-title').value.trim();
-                const link = card.querySelector('.row-link').value.trim();
-                const imgBase64 = card.querySelector('.row-existing-image').value;
-                const isActive = card.querySelector('.row-active').checked;
-
-                db.ref('products').push({
-                    group: groupTitle,
-                    title: title,
-                    link: link,
-                    image: imgBase64,
-                    active: isActive,
-                    layout: currentLayout,
-                    order: index,
-                    clicks: 0
-                }, function(err) {
-                    processedCount++;
-                    if (processedCount === cards.length) {
-                        alert(editingGroupName ? '그룹이 성공적으로 수정되었습니다!' : '그룹 상품이 성공적으로 등록되었습니다!');
-                        resetFormMode();
-                    }
-                });
-            });
-        }
-
-        function editGroup(groupName) {
-            document.getElementById('editingGroupName').value = groupName;
-            document.getElementById('groupTitleInput').value = groupName;
-            document.getElementById('formModeTitle').innerText = '✏️ 그룹 수정 모드 (' + groupName + ')';
-            document.getElementById('submitBtn').innerText = '💾 수정 사항 저장하기';
-            document.getElementById('cancelBtn').style.display = 'block';
-
-            document.getElementById('productRowsContainer').innerHTML = '';
-
-            const groupItems = [];
-            Object.keys(allProductsData).forEach(id => {
-                const item = allProductsData[id];
-                if (item.group === groupName) groupItems.push(item);
-            });
-            groupItems.sort((a, b) => (a.order || 0) - (b.order || 0));
-
-            if (groupItems.length > 0 && groupItems[0].layout) {
-                setLayout(groupItems[0].layout);
-            }
-
-            groupItems.forEach(item => {
-                addProductRow(item.title, item.link, item.image, item.active !== false);
-            });
-
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-
-        function resetFormMode() {
-            document.getElementById('editingGroupName').value = '';
-            document.getElementById('groupTitleInput').value = '';
-            document.getElementById('formModeTitle').innerText = '➕ 그룹 상품 등록';
-            document.getElementById('submitBtn').innerText = '🚀 그룹 상품 한 번에 등록하기';
-            document.getElementById('cancelBtn').style.display = 'none';
-            document.getElementById('productRowsContainer').innerHTML = '';
-            setLayout('list');
-            addProductRow();
-        }
-
-        db.ref('settings/profileImg').on('value', function(snapshot) {
-            const url = snapshot.val();
-            const imgEl = document.getElementById('currentProfileView');
-            const prevProfile = document.getElementById('prevProfileImg');
-            if (url) {
-                imgEl.src = url;
-                prevProfile.src = url;
-            } else {
-                imgEl.src = 'https://via.placeholder.com/90?text=🔥';
-                prevProfile.src = 'https://via.placeholder.com/45?text=🔥';
-            }
-        });
-
-        function updateProfileImage() {
-            const fileInput = document.getElementById('profileFileInput');
-            if (fileInput.files.length === 0) {
-                alert('변경할 프로필 이미지 파일을 선택해주세요!');
-                return;
-            }
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                db.ref('settings').set({ profileImg: e.target.result }, function(err) {
-                    if(err) alert('변경 실패: ' + err.message);
-                    else {
-                        alert('프로필 이미지가 성공적으로 변경되었습니다!');
-                        fileInput.value = '';
-                    }
-                });
-            };
-            reader.readAsDataURL(fileInput.files[0]);
-        }
-
-        db.ref('products').on('value', function(snapshot) {
-            allProductsData = snapshot.val() || {};
-            renderLists();
-        });
-
-        function renderLists() {
-            const listDiv = document.getElementById('admin-list');
-            const analyticsDiv = document.getElementById('analytics-list');
-            listDiv.innerHTML = '';
-            analyticsDiv.innerHTML = '';
-
-            if(Object.keys(allProductsData).length === 0) {
-                analyticsDiv.innerHTML = '<p style="font-size:12px; color:#888; text-align:center;">집계된 데이터가 없습니다.</p>';
-                return;
-            }
-
-            const keyword = document.getElementById('searchInput').value.toLowerCase();
-            
-            const groupsMap = {};
-            Object.keys(allProductsData).reverse().forEach(function(id) {
-                const item = allProductsData[id];
-                if (!groupsMap[item.group]) {
-                    groupsMap[item.group] = item;
-                }
-            });
-
-            Object.keys(groupsMap).forEach(function(groupName) {
-                const item = groupsMap[groupName];
-                if (keyword && !groupName.toLowerCase().includes(keyword)) return;
-
-                const div = document.createElement('div');
-                div.className = 'admin-item';
-                div.innerHTML = `
-                    <div class="admin-item-info">
-                        <img src="${item.image || 'https://via.placeholder.com/40'}" class="admin-thumb" alt="썸네일">
-                        <div><strong>📁 ${groupName}</strong></div>
-                    </div>
-                    <div class="admin-btn-group">
-                        <button class="btn-edit" onclick="editGroup('${groupName}')">그룹 수정</button>
-                        <button class="btn-del" onclick="deleteGroup('${groupName}')">그룹 삭제</button>
-                    </div>
-                `;
-                listDiv.appendChild(div);
-            });
-
-            const itemsArray = [];
-            Object.keys(allProductsData).forEach(function(id) {
-                const obj = allProductsData[id];
-                obj.id = id;
-                itemsArray.push(obj);
-            });
-
-            itemsArray.sort((a, b) => (b.clicks || 0) - (a.clicks || 0));
-
-            itemsArray.forEach(function(item) {
-                const div = document.createElement('div');
-                div.className = 'analytics-item';
-                div.innerHTML = `
-                    <div style="display:flex; align-items:center; gap:8px;">
-                        <img src="${item.image || 'https://via.placeholder.com/35'}" style="width:35px; height:35px; border-radius:4px; object-fit:cover;" alt="썸네일">
-                        <div><strong>${item.title}</strong> <span style="font-size:11px; color:#888;">(${item.group})</span></div>
-                    </div>
-                    <span class="click-count">🖱️ ${item.clicks || 0}회</span>
-                `;
-                analyticsDiv.appendChild(div);
-            });
-        }
-
-        function filterAdminList() { renderLists(); }
-
-        function deleteGroup(groupName) {
-            if(confirm(`'${groupName}' 그룹에 속한 모든 상품을 삭제하시겠습니까?`)) {
-                Object.keys(allProductsData).forEach(id => {
-                    if (allProductsData[id].group === groupName) {
-                        db.ref('products/' + id).remove();
-                    }
-                });
-            }
-        }
-    </script>
-</body>
-</html>
+                Object.
