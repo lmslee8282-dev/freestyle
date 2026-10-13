@@ -21,6 +21,32 @@
         .tab-content { display: none; }
         .tab-content.active { display: block; }
 
+        /* 드래그 앤 드롭 박스 스타일 */
+        .drop-zone {
+            border: 2px dashed #ccc;
+            border-radius: 6px;
+            padding: 15px;
+            text-align: center;
+            background: #fafafa;
+            color: #666;
+            font-size: 13px;
+            margin-top: 5px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .drop-zone.dragover {
+            background: #ffe5e8;
+            border-color: #ff4757;
+            color: #ff4757;
+        }
+        .drop-zone img {
+            max-width: 80px;
+            max-height: 80px;
+            margin-top: 8px;
+            border-radius: 4px;
+            object-fit: cover;
+        }
+
         button.btn-add { background: #ff4757; color: #fff; font-weight: bold; border: none; cursor: pointer; margin-top: 15px; }
         button.btn-add:hover { background: #e03847; }
         button.btn-profile { background: #2f3542; color: #fff; font-weight: bold; border: none; cursor: pointer; margin-top: 10px; }
@@ -45,24 +71,32 @@
         </div>
 
         <div id="tab-manage" class="tab-content active">
-            <label>프로필 이미지 (파일 선택)</label>
-            <input type="file" id="profileFileInput" accept="image/*">
+            <label>프로필 이미지 (드래그 또는 파일 선택)</label>
+            <div id="profileDropZone" class="drop-zone">
+                📁 프로필 이미지를 여기에 드래그하거나 클릭하세요
+                <input type="file" id="profileFileInput" accept="image/*" style="display:none;">
+                <div id="profilePreview"></div>
+            </div>
             <button class="btn-profile" onclick="updateProfileImage()">👤 프로필 이미지 변경하기</button>
 
             <hr>
 
             <h3>➕ 상품 등록</h3>
             <label>그룹 (카테고리)</label>
-            <input type="text" id="group" placeholder="예: 🎃 꿀템 TOP 3">
+            <input type="text" id="group" placeholder="예: 🎃 10월 할로윈 꿀템 TOP 3">
 
             <label>상품명</label>
-            <input type="text" id="title" placeholder="예: 3종 세트">
+            <input type="text" id="title" placeholder="예: 할로윈 LED 호박등 3종 세트">
 
             <label>쿠팡 파트너스 링크</label>
             <input type="text" id="link" placeholder="https://link.coupang.com/...">
 
-            <label>상품 이미지 (파일 선택)</label>
-            <input type="file" id="imageFileInput" accept="image/*">
+            <label>상품 이미지 (드래그 또는 파일 선택)</label>
+            <div id="productDropZone" class="drop-zone">
+                🖼️ 상품 이미지를 여기에 드래그하거나 클릭하세요
+                <input type="file" id="imageFileInput" accept="image/*" style="display:none;">
+                <div id="productPreview"></div>
+            </div>
 
             <button class="btn-add" onclick="addProductWithFile()">➕ 상품 등록하기</button>
 
@@ -98,6 +132,8 @@
         const db = firebase.database();
 
         let allProductsData = {};
+        let profileBase64 = "";
+        let productBase64 = "";
 
         function switchTab(tabName) {
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
@@ -112,7 +148,7 @@
             }
         }
 
-        // 이미지 파일을 Base64 문자열로 변환하는 헬퍼 함수
+        // 파일 Base64 변환 헬퍼
         function convertFileToBase64(file, callback) {
             const reader = new FileReader();
             reader.onload = function(e) {
@@ -121,21 +157,68 @@
             reader.readAsDataURL(file);
         }
 
+        // 드래그 앤 드롭 이벤트 설정 함수
+        function setupDropZone(dropZoneId, fileInputId, previewId, isProfile) {
+            const dropZone = document.getElementById(dropZoneId);
+            const fileInput = document.getElementById(fileInputId);
+            const preview = document.getElementById(previewId);
+
+            dropZone.onclick = function() {
+                fileInput.click();
+            };
+
+            fileInput.onchange = function(e) {
+                if (e.target.files.length > 0) {
+                    handleFile(e.target.files[0]);
+                }
+            };
+
+            dropZone.ondragover = function(e) {
+                e.preventDefault();
+                dropZone.classList.add('dragover');
+            };
+
+            dropZone.ondragleave = function() {
+                dropZone.classList.remove('dragover');
+            };
+
+            dropZone.ondrop = function(e) {
+                e.preventDefault();
+                dropZone.classList.remove('dragover');
+                if (e.dataTransfer.files.length > 0) {
+                    handleFile(e.dataTransfer.files[0]);
+                }
+            };
+
+            function handleFile(file) {
+                convertFileToBase64(file, function(base64Str) {
+                    if (isProfile) {
+                        profileBase64 = base64Str;
+                    } else {
+                        productBase64 = base64Str;
+                    }
+                    preview.innerHTML = '<img src="' + base64Str + '" alt="미리보기">';
+                });
+            }
+        }
+
+        // 드래그 존 활성화 실행
+        setupDropZone('profileDropZone', 'profileFileInput', 'profilePreview', true);
+        setupDropZone('productDropZone', 'imageFileInput', 'productPreview', false);
+
         function updateProfileImage() {
-            const fileInput = document.getElementById('profileFileInput');
-            if (fileInput.files.length === 0) {
-                alert('변경할 프로필 이미지 파일을 선택해주세요!');
+            if (!profileBase64) {
+                alert('변경할 프로필 이미지 파일을 드래그하거나 선택해주세요!');
                 return;
             }
 
-            convertFileToBase64(fileInput.files[0], function(base64Image) {
-                db.ref('settings').set({ profileImg: base64Image }, function(err) {
-                    if(err) alert('변경 실패!');
-                    else {
-                        alert('프로필 이미지가 성공적으로 변경되었습니다!');
-                        fileInput.value = '';
-                    }
-                });
+            db.ref('settings').set({ profileImg: profileBase64 }, function(err) {
+                if(err) alert('변경 실패!');
+                else {
+                    alert('프로필 이미지가 성공적으로 변경되었습니다!');
+                    profileBase64 = "";
+                    document.getElementById('profilePreview').innerHTML = '';
+                }
             });
         }
 
@@ -143,35 +226,33 @@
             const group = document.getElementById('group').value.trim();
             const title = document.getElementById('title').value.trim();
             const link = document.getElementById('link').value.trim();
-            const fileInput = document.getElementById('imageFileInput');
 
             if(!group || !title || !link) {
                 alert('그룹, 상품명, 링크는 필수 입력입니다!');
                 return;
             }
 
-            if(fileInput.files.length === 0) {
-                alert('상품 이미지 파일을 선택해주세요!');
+            if(!productBase64) {
+                alert('상품 이미지 파일을 드래그하거나 선택해주세요!');
                 return;
             }
 
-            convertFileToBase64(fileInput.files[0], function(base64Image) {
-                db.ref('products').push({ 
-                    group: group, 
-                    title: title, 
-                    link: link, 
-                    image: base64Image, 
-                    clicks: 0 
-                }, function(err) {
-                    if(err) {
-                        alert('등록 실패: ' + err.message);
-                    } else {
-                        alert('성공적으로 등록되었습니다!');
-                        document.getElementById('title').value = '';
-                        document.getElementById('link').value = '';
-                        fileInput.value = '';
-                    }
-                });
+            db.ref('products').push({ 
+                group: group, 
+                title: title, 
+                link: link, 
+                image: productBase64, 
+                clicks: 0 
+            }, function(err) {
+                if(err) {
+                    alert('등록 실패: ' + err.message);
+                } else {
+                    alert('성공적으로 등록되었습니다!');
+                    document.getElementById('title').value = '';
+                    document.getElementById('link').value = '';
+                    productBase64 = "";
+                    document.getElementById('productPreview').innerHTML = '';
+                }
             });
         }
 
