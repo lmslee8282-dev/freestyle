@@ -28,6 +28,39 @@
         .product-input-card { background: #f9f9f9; border: 1px solid #ddd; border-radius: 8px; padding: 12px; margin-top: 10px; position: relative; }
         .btn-remove-row { background: #333; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; margin-top: 8px; width: auto; float: right; }
         
+        /* [+] 드래그 앤 드롭 업로드 박스 스타일 */
+        .image-drop-zone {
+            width: 80px;
+            height: 80px;
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #fff;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            margin-top: 5px;
+            transition: 0.2s;
+        }
+        .image-drop-zone:hover, .image-drop-zone.dragover {
+            border-color: #ff4757;
+            background: #fff0f1;
+        }
+        .image-drop-zone span {
+            font-size: 24px;
+            color: #aaa;
+        }
+        .image-drop-zone img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
         .btn-add-row { background: #2f3542; color: #fff; font-weight: bold; border: none; cursor: pointer; margin-top: 10px; font-size: 13px; }
         .btn-add-row:hover { background: #57606f; }
         
@@ -67,7 +100,7 @@
             <input type="hidden" id="editingGroupName" value="">
 
             <label>대표 문구 (그룹 제목)</label>
-            <input type="text" id="groupTitleInput" placeholder="그룹 링크 상단에 문구가 노출됩니다.">
+            <input type="text" id="groupTitleInput" placeholder="그룹 링크 상단에 문구가 노출됩니다.[cite: 3]">
 
             <label style="margin-top:15px; font-weight:bold; color:#ff4757;">링크 목록</label>
             <div id="productRowsContainer"></div>
@@ -88,7 +121,7 @@
         <!-- [탭 2] 프로필 설정 -->
         <div id="tab-profile" class="tab-content">
             <h3>👤 프로필 설정</h3>
-            <p style="font-size:11px; color:#888; text-align:center; margin-bottom:20px;">메인 페이지 상단에 노출될 프로필 이미지를 관리합니다.</p>
+            <p style="font-size:11px; color:#888; text-align:center; margin-bottom:20px;">메인 페이지 상단에 노출될 프로필 이미지를 관리합니다.[cite: 3]</p>
             
             <label style="text-align:center;">현재 프로필 이미지</label>
             <div class="profile-preview-box">
@@ -106,7 +139,7 @@
         <!-- [탭 3] 분석 대시보드 -->
         <div id="tab-analytics" class="tab-content">
             <h3>📊 BEST 클릭 순위 (실시간)</h3>
-            <p style="font-size:11px; color:#888; text-align:center; margin-bottom:15px;">어떤 상품이 시청자들의 클릭을 많이 받았는지 확인하세요.</p>
+            <p style="font-size:11px; color:#888; text-align:center; margin-bottom:15px;">어떤 상품이 시청자들의 클릭을 많이 받았는지 확인하세요.[cite: 3]</p>
             <div class="analytics-section" id="analytics-list">
                 <p style="font-size:12px; color:#888; text-align:center;">집계된 데이터가 없습니다.</p>
             </div>
@@ -114,7 +147,7 @@
     </div>
 
     <script>
-        // ★ 본인의 Firebase 설정값으로 교체하세요! ★
+        // ★ 본인의 Firebase 설정값 ★
         const firebaseConfig = {
   apiKey: "AIzaSyCMy4vdbdLd26v8l2kGTsCW-IZaGklqwLs",
   authDomain: "freestyle-db-becce.firebaseapp.com",
@@ -124,6 +157,7 @@
   appId: "1:811035384445:web:490ffeb5f09cb763f0ef14",
   measurementId: "G-FY7T44KY7D"
 };
+
 
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
@@ -150,26 +184,80 @@
             addProductRow();
         };
 
+        // 상품 입력 행 추가 (클릭 및 드래그 앤 드롭 업로드 UI 적용)
         function addProductRow(titleVal = '', linkVal = '', imageVal = '') {
             const container = document.getElementById('productRowsContainer');
-            const cardId = 'row_' + Date.now() + Math.random();
+            const uniqueId = 'row_' + Date.now() + '_' + Math.random().toString(36.2);
             
             const card = document.createElement('div');
             card.className = 'product-input-card';
-            card.id = cardId;
+            card.id = uniqueId;
             card.innerHTML = `
                 <label>상품명</label>
-                <input type="text" class="row-title" value="${titleVal}" placeholder="버튼에 문구가 노출됩니다.">
+                <input type="text" class="row-title" value="${titleVal}" placeholder="버튼에 문구가 노출됩니다.[cite: 3]">
+                
                 <label>쿠팡 파트너스 링크</label>
                 <input type="text" class="row-link" value="${linkVal}" placeholder="https://link.coupang.com/...">
-                <label>상품 이미지 파일 ${imageVal ? '(변경하려면 새로 선택)' : ''}</label>
-                <input type="file" class="row-file" accept="image/*" style="margin-top:5px; font-size:12px;">
-                <input type="hidden" class="row-existing-image" value="${imageVal}">
-                ${imageVal ? '<div style="margin-top:5px;"><img src="'+imageVal+'" style="width:40px; height:40px; object-fit:cover; border-radius:4px;" alt="기존이미지"></div>' : ''}
-                <button class="btn-remove-row" onclick="document.getElementById('${cardId}').remove()">삭제</button>
+                
+                <label>이미지</label>
+                <div class="image-drop-zone" id="dropZone_${uniqueId}">
+                    <span id="dropIcon_${uniqueId}">+</span>
+                    <input type="file" class="row-file" accept="image/*" style="display:none;" id="fileInput_${uniqueId}">
+                    <img id="previewImg_${uniqueId}" src="${imageVal || ''}" style="${imageVal ? '' : 'display:none;'}">
+                </div>
+                <input type="hidden" class="row-existing-image" id="existingImg_${uniqueId}" value="${imageVal}">
+
+                <button class="btn-remove-row" onclick="document.getElementById('${uniqueId}').remove()">삭제</button>
                 <div style="clear:both;"></div>
             `;
             container.appendChild(card);
+
+            // 드래그 앤 드롭 및 클릭 이벤트 바인딩
+            const dropZone = document.getElementById(`dropZone_${uniqueId}`);
+            const fileInput = document.getElementById(`fileInput_${uniqueId}`);
+            const previewImg = document.getElementById(`previewImg_${uniqueId}`);
+            const dropIcon = document.getElementById(`dropIcon_${uniqueId}`);
+            const existingImgInput = document.getElementById(`existingImg_${uniqueId}`);
+
+            dropZone.onclick = function() {
+                fileInput.click();
+            };
+
+            fileInput.onchange = function(e) {
+                if (e.target.files.length > 0) {
+                    processFile(e.target.files[0]);
+                }
+            };
+
+            dropZone.ondragover = function(e) {
+                e.preventDefault();
+                dropZone.classList.add('dragover');
+            };
+
+            dropZone.ondragleave = function() {
+                dropZone.classList.remove('dragover');
+            };
+
+            dropZone.ondrop = function(e) {
+                e.preventDefault();
+                dropZone.classList.remove('dragover');
+                if (e.dataTransfer.files.length > 0) {
+                    fileInput.files = e.dataTransfer.files;
+                    processFile(e.dataTransfer.files[0]);
+                }
+            };
+
+            function processFile(file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const base64Str = e.target.result;
+                    previewImg.src = base64Str;
+                    previewImg.style.display = 'block';
+                    dropIcon.style.display = 'none';
+                    existingImgInput.value = base64Str; // 새로 선택한 이미지 반영
+                };
+                reader.readAsDataURL(file);
+            }
         }
 
         // 그룹 상품 등록 또는 수정 저장
@@ -192,10 +280,9 @@
             cards.forEach(card => {
                 const title = card.querySelector('.row-title').value.trim();
                 const link = card.querySelector('.row-link').value.trim();
-                const fileInput = card.querySelector('.row-file');
                 const existingImg = card.querySelector('.row-existing-image').value;
 
-                if (!title || !link || (fileInput.files.length === 0 && !existingImg)) {
+                if (!title || !link || !existingImg) {
                     hasError = true;
                 }
             });
@@ -205,7 +292,7 @@
                 return;
             }
 
-            // 수정 모드일 경우 기존에 해당 그룹에 있던 아이템들을 먼저 삭제 처리 후 새로 등록
+            // 수정 모드일 경우 기존 그룹 데이터 삭제 후 재등록
             if (editingGroupName) {
                 Object.keys(allProductsData).forEach(id => {
                     if (allProductsData[id].group === editingGroupName) {
@@ -215,41 +302,28 @@
             }
 
             let processedCount = 0;
-            cards.forEach((card, index) => {
+            cards.forEach((card) => {
                 const title = card.querySelector('.row-title').value.trim();
                 const link = card.querySelector('.row-link').value.trim();
-                const fileInput = card.querySelector('.row-file');
-                const existingImg = card.querySelector('.row-existing-image').value;
+                const imgBase64 = card.querySelector('.row-existing-image').value;
 
-                const saveToFirebase = (imgBase64) => {
-                    db.ref('products').push({
-                        group: groupTitle,
-                        title: title,
-                        link: link,
-                        image: imgBase64,
-                        clicks: 0
-                    }, function(err) {
-                        processedCount++;
-                        if (processedCount === cards.length) {
-                            alert(editingGroupName ? '그룹이 성공적으로 수정되었습니다!' : '그룹 상품이 성공적으로 등록되었습니다!');
-                            resetFormMode();
-                        }
-                    });
-                };
-
-                if (fileInput.files.length > 0) {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        saveToFirebase(e.target.result);
-                    };
-                    reader.readAsDataURL(fileInput.files[0]);
-                } else {
-                    saveToFirebase(existingImg);
-                }
+                db.ref('products').push({
+                    group: groupTitle,
+                    title: title,
+                    link: link,
+                    image: imgBase64,
+                    clicks: 0
+                }, function(err) {
+                    processedCount++;
+                    if (processedCount === cards.length) {
+                        alert(editingGroupName ? '그룹이 성공적으로 수정되었습니다!' : '그룹 상품이 성공적으로 등록되었습니다!');
+                        resetFormMode();
+                    }
+                });
             });
         }
 
-        // ✏️ 특정 그룹 수정 모드로 전환
+        // 특정 그룹 수정 모드로 전환
         function editGroup(groupName) {
             document.getElementById('editingGroupName').value = groupName;
             document.getElementById('groupTitleInput').value = groupName;
@@ -259,7 +333,6 @@
 
             document.getElementById('productRowsContainer').innerHTML = '';
 
-            // 해당 그룹에 속한 상품들을 찾아 입력 폼에 채워넣기
             Object.keys(allProductsData).forEach(id => {
                 const item = allProductsData[id];
                 if (item.group === groupName) {
@@ -267,7 +340,6 @@
                 }
             });
 
-            // 상단 관리 폼으로 스크롤 이동
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
@@ -325,13 +397,12 @@
             analyticsDiv.innerHTML = '';
 
             if(Object.keys(allProductsData).length === 0) {
-                analyticsDiv.innerHTML = '<p style="font-size:12px; color:#888; text-align:center;">집계된 데이터가 없습니다.</p>';
+                analyticsDiv.innerHTML = '<p style="font-size:12px; color:#888; text-align:center;">집계된 데이터가 없습니다.[cite: 3]</p>';
                 return;
             }
 
             const keyword = document.getElementById('searchInput').value.toLowerCase();
             
-            // 그룹 단위로 목록 표시하기 위해 그룹별 대표 아이템 추출
             const groupsMap = {};
             Object.keys(allProductsData).reverse().forEach(function(id) {
                 const item = allProductsData[id];
