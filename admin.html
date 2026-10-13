@@ -391,3 +391,257 @@
                     updateLivePreview();
                 };
                 reader.readAsDataURL(file);
+            }
+        }
+
+        function getDragAfterElement(container, y) {
+            const draggableElements = [...container.querySelectorAll('.product-input-card:not(.dragging)')];
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+                if (offset < 0 && offset > closest.offset) return { offset: offset, element: child };
+                else return closest;
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        }
+
+        function removeImage(uniqueId) {
+            document.getElementById(`previewImg_${uniqueId}`).src = '';
+            document.getElementById(`previewImg_${uniqueId}`).style.display = 'none';
+            document.getElementById(`dropIcon_${uniqueId}`).style.display = 'block';
+            document.getElementById(`delImgBtn_${uniqueId}`).style.display = 'none';
+            document.getElementById(`existingImg_${uniqueId}`).value = '';
+            document.getElementById(`fileInput_${uniqueId}`).value = '';
+            updateLivePreview();
+        }
+
+        function saveGroupProducts() {
+            const groupTitle = document.getElementById('groupTitleInput').value.trim();
+            const groupColor = document.getElementById('groupTextColor').value;
+            const productTextColor = document.getElementById('productTextColor').value;
+            const editingGroupName = document.getElementById('editingGroupName').value.trim();
+
+            if (!groupTitle) {
+                alert('대표 문구(그룹 제목)를 입력해주세요!');
+                return;
+            }
+
+            const cards = document.querySelectorAll('.product-input-card');
+            if (cards.length === 0) {
+                alert('등록할 상품을 최소 1개 이상 추가해주세요!');
+                return;
+            }
+
+            let hasError = false;
+            cards.forEach(card => {
+                const title = card.querySelector('.row-title').value.trim();
+                const link = card.querySelector('.row-link').value.trim();
+                const existingImg = card.querySelector('.row-existing-image').value;
+                if (!title || !link || !existingImg) hasError = true;
+            });
+
+            if (hasError) {
+                alert('모든 상품의 상품명, 링크, 이미지를 빠짐없이 입력해주세요!');
+                return;
+            }
+
+            if (editingGroupName) {
+                Object.keys(allProductsData).forEach(id => {
+                    if (allProductsData[id].group === editingGroupName) {
+                        db.ref('products/' + id).remove();
+                    }
+                });
+            }
+
+            let processedCount = 0;
+            cards.forEach((card, index) => {
+                const title = card.querySelector('.row-title').value.trim();
+                const link = card.querySelector('.row-link').value.trim();
+                const imgBase64 = card.querySelector('.row-existing-image').value;
+                const isActive = card.querySelector('.row-active').checked;
+
+                db.ref('products').push({
+                    group: groupTitle,
+                    groupColor: groupColor,
+                    productTextColor: productTextColor,
+                    title: title,
+                    link: link,
+                    image: imgBase64,
+                    active: isActive,
+                    layout: currentLayout,
+                    order: index,
+                    clicks: 0
+                }, function(err) {
+                    processedCount++;
+                    if (processedCount === cards.length) {
+                        alert(editingGroupName ? '그룹이 성공적으로 수정되었습니다!' : '그룹 상품이 성공적으로 등록되었습니다!');
+                        resetFormMode();
+                    }
+                });
+            });
+        }
+
+        function editGroup(groupName) {
+            document.getElementById('editingGroupName').value = groupName;
+            document.getElementById('groupTitleInput').value = groupName;
+            document.getElementById('formModeTitle').innerText = '✏️ 그룹 수정 모드 (' + groupName + ')';
+            document.getElementById('submitBtn').innerText = '💾 수정 사항 저장하기';
+            document.getElementById('cancelBtn').style.display = 'block';
+
+            document.getElementById('productRowsContainer').innerHTML = '';
+
+            const groupItems = [];
+            Object.keys(allProductsData).forEach(id => {
+                const item = allProductsData[id];
+                if (item.group === groupName) groupItems.push(item);
+            });
+            groupItems.sort((a, b) => (a.order || 0) - (b.order || 0));
+
+            if (groupItems.length > 0) {
+                if (groupItems[0].layout) setLayout(groupItems[0].layout);
+                if (groupItems[0].groupColor) document.getElementById('groupTextColor').value = groupItems[0].groupColor;
+                if (groupItems[0].productTextColor) document.getElementById('productTextColor').value = groupItems[0].productTextColor;
+            }
+
+            groupItems.forEach(item => {
+                addProductRow(item.title, item.link, item.image, item.active !== false);
+            });
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function resetFormMode() {
+            document.getElementById('editingGroupName').value = '';
+            document.getElementById('groupTitleInput').value = '';
+            document.getElementById('formModeTitle').innerText = '➕ 그룹 상품 등록';
+            document.getElementById('submitBtn').innerText = '🚀 그룹 상품 한 번에 등록하기';
+            document.getElementById('cancelBtn').style.display = 'none';
+            document.getElementById('productRowsContainer').innerHTML = '';
+            setLayout('list');
+            document.getElementById('groupTextColor').value = '#ff4757';
+            document.getElementById('productTextColor').value = '#ffffff';
+            addProductRow();
+        }
+
+        db.ref('settings/profileImg').on('value', function(snapshot) {
+            const url = snapshot.val();
+            const imgEl = document.getElementById('currentProfileView');
+            const prevProfile = document.getElementById('prevProfileImg');
+            if (url) {
+                imgEl.src = url;
+                prevProfile.src = url;
+            } else {
+                imgEl.src = 'https://via.placeholder.com/90?text=🔥';
+                prevProfile.src = 'https://via.placeholder.com/45?text=🔥';
+            }
+        });
+
+        function updateProfileImage() {
+            const fileInput = document.getElementById('profileFileInput');
+            if (fileInput.files.length === 0) {
+                alert('변경할 프로필 이미지 파일을 선택해주세요!');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                db.ref('settings').set({ profileImg: e.target.result }, function(err) {
+                    if(err) alert('변경 실패: ' + err.message);
+                    else {
+                        alert('프로필 이미지가 성공적으로 변경되었습니다!');
+                        fileInput.value = '';
+                    }
+                });
+            };
+            reader.readAsDataURL(fileInput.files[0]);
+        }
+
+        db.ref('products').on('value', function(snapshot) {
+            allProductsData = snapshot.val() || {};
+            renderLists();
+        });
+
+        function renderLists() {
+            const listDiv = document.getElementById('admin-list');
+            const analyticsDiv = document.getElementById('analytics-list');
+            listDiv.innerHTML = '';
+            analyticsDiv.innerHTML = '';
+
+            if(!allProductsData || Object.keys(allProductsData).length === 0) {
+                listDiv.innerHTML = '<p style="font-size:12px; color:#888; text-align:center;">등록된 그룹이 없습니다.</p>';
+                analyticsDiv.innerHTML = '<p style="font-size:12px; color:#888; text-align:center;">집계된 데이터가 없습니다.</p>';
+                return;
+            }
+
+            const keyword = document.getElementById('searchInput').value.toLowerCase();
+            
+            const groupsMap = {};
+            Object.keys(allProductsData).reverse().forEach(function(id) {
+                const item = allProductsData[id];
+                if (item && item.group && !groupsMap[item.group]) {
+                    groupsMap[item.group] = item;
+                }
+            });
+
+            const groupKeys = Object.keys(groupsMap);
+            if (groupKeys.length === 0) {
+                listDiv.innerHTML = '<p style="font-size:12px; color:#888; text-align:center;">등록된 그룹이 없습니다.</p>';
+            }
+
+            groupKeys.forEach(function(groupName) {
+                const item = groupsMap[groupName];
+                if (keyword && !groupName.toLowerCase().includes(keyword)) return;
+
+                const div = document.createElement('div');
+                div.className = 'admin-item';
+                div.innerHTML = `
+                    <div class="admin-item-info">
+                        <img src="${item.image || 'https://via.placeholder.com/40'}" class="admin-thumb" alt="썸네일">
+                        <div><strong>📁 ${groupName}</strong></div>
+                    </div>
+                    <div class="admin-btn-group">
+                        <button class="btn-edit" onclick="editGroup('${groupName.replace(/'/g, "\\'")}')">그룹 수정</button>
+                        <button class="btn-del" onclick="deleteGroup('${groupName.replace(/'/g, "\\'")}')">그룹 삭제</button>
+                    </div>
+                `;
+                listDiv.appendChild(div);
+            });
+
+            const itemsArray = [];
+            Object.keys(allProductsData).forEach(function(id) {
+                const obj = allProductsData[id];
+                if (obj) {
+                    obj.id = id;
+                    itemsArray.push(obj);
+                }
+            });
+
+            itemsArray.sort((a, b) => (b.clicks || 0) - (a.clicks || 0));
+
+            itemsArray.forEach(function(item) {
+                const div = document.createElement('div');
+                div.className = 'analytics-item';
+                div.innerHTML = `
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <img src="${item.image || 'https://via.placeholder.com/35'}" style="width:35px; height:35px; border-radius:4px; object-fit:cover;" alt="썸네일">
+                        <div><strong>${item.title || ''}</strong> <span style="font-size:11px; color:#888;">(${item.group || ''})</span></div>
+                    </div>
+                    <span class="click-count">🖱️ ${item.clicks || 0}회</span>
+                `;
+                analyticsDiv.appendChild(div);
+            });
+        }
+
+        function filterAdminList() { renderLists(); }
+
+        function deleteGroup(groupName) {
+            if(confirm(`'${groupName}' 그룹에 속한 모든 상품을 삭제하시겠습니까?`)) {
+                Object.keys(allProductsData).forEach(id => {
+                    if (allProductsData[id].group === groupName) {
+                        db.ref('products/' + id).remove();
+                    }
+                });
+            }
+        }
+    </script>
+</body>
+</html>
