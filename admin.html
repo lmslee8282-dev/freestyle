@@ -3192,5 +3192,430 @@ if (document.readyState === 'loading') {
 })();
 </script>
 
+<style>
+/* 실제 고객 페이지 편집 미리보기 */
+
+.preview-pane {
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 32px);
+    overflow: hidden;
+}
+
+.live-editor-tabs {
+    display: flex;
+    gap: 6px;
+    margin: 0 0 10px;
+}
+
+.live-editor-tabs button {
+    flex: 1;
+    width: auto;
+    margin: 0;
+    padding: 10px 5px;
+    border: 1px solid #eedce2;
+    border-radius: 9px;
+    background: #fff;
+    color: #776a72;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.live-editor-tabs button.selected {
+    background: #ed7295;
+    color: white;
+    border-color: #ed7295;
+}
+
+.live-customer-frame {
+    display: block;
+    width: 100%;
+    min-height: 0;
+    flex: 1;
+    border: none;
+    border-radius: 20px;
+    background: #fff8fa;
+}
+
+.live-selection-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    padding-top: 10px;
+}
+
+.live-selection-name {
+    color: #675d67;
+    font-size: 11px;
+    overflow-wrap: anywhere;
+}
+
+.live-editor-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.live-editor-actions button {
+    flex: 1;
+    width: auto;
+    margin: 0;
+    padding: 9px 4px;
+    border: 1px solid #edcbd5;
+    border-radius: 9px;
+    background: #fff0f4;
+    color: #ce5277;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.preview-screen.live-hidden {
+    display: none !important;
+}
+
+@media(max-width: 850px) {
+    .preview-pane {
+        height: 650px;
+        max-height: 75vh;
+    }
+}
+</style>
+
+<script>
+/* ==========================================
+   FreeStyle 실제 고객 페이지 편집 미리보기
+
+   - 고객용 index.html을 그대로 표시
+   - 내부 스크롤 / 검색 / 더 보기 가능
+   - 그룹 클릭 -> 그룹 수정
+   - 상품 클릭 -> 해당 상품 입력창 선택
+   - 선택 그룹에 상품 추가
+========================================== */
+
+(function () {
+    const pane = document.querySelector('.preview-pane');
+
+    if (!pane) {
+        console.warn('미리보기 패널을 찾지 못했습니다.');
+        return;
+    }
+
+    const draftPreview =
+        document.getElementById('livePreviewScreen');
+
+    const tabs = document.createElement('div');
+    tabs.className = 'live-editor-tabs';
+
+    tabs.innerHTML = `
+        <button type="button" id="liveModeBtn"
+                class="selected">실제 고객 화면</button>
+        <button type="button" id="draftModeBtn">
+                작성 중 미리보기</button>
+    `;
+
+    const frame = document.createElement('iframe');
+    frame.className = 'live-customer-frame';
+    frame.title = '고객용 상품 페이지 편집 미리보기';
+    frame.src = './index.html';
+
+    const bar = document.createElement('div');
+    bar.className = 'live-selection-bar';
+
+    bar.innerHTML = `
+        <div id="liveSelectedName"
+             class="live-selection-name">
+            왼쪽에서 그룹이나 상품을 선택하세요.
+        </div>
+
+        <div class="live-editor-actions">
+            <button type="button" id="liveAddGroup">
+                + 새 그룹
+            </button>
+
+            <button type="button" id="liveAddProduct"
+                    disabled>
+                + 선택 그룹에 상품 추가
+            </button>
+        </div>
+    `;
+
+    // 기존 작성 미리보기를 유지한 채 삽입
+    if (draftPreview) {
+        pane.insertBefore(tabs, draftPreview);
+        draftPreview.classList.add('live-hidden');
+        draftPreview.style.flex = '1';
+        draftPreview.style.minHeight = '0';
+    } else {
+        pane.prepend(tabs);
+    }
+
+    tabs.insertAdjacentElement('afterend', frame);
+    frame.insertAdjacentElement('afterend', bar);
+
+    const liveBtn = document.getElementById('liveModeBtn');
+    const draftBtn = document.getElementById('draftModeBtn');
+
+    let selectedGroupName = '';
+
+    function setMode(mode) {
+        const live = mode === 'live';
+
+        frame.style.display = live ? 'block' : 'none';
+        bar.style.display = live ? 'flex' : 'none';
+
+        if (draftPreview) {
+            draftPreview.classList.toggle(
+                'live-hidden', live
+            );
+        }
+
+        liveBtn.classList.toggle('selected', live);
+        draftBtn.classList.toggle('selected', !live);
+    }
+
+    liveBtn.addEventListener('click', () => {
+        setMode('live');
+    });
+
+    draftBtn.addEventListener('click', () => {
+        setMode('draft');
+    });
+
+    function cleanGroupName(text) {
+        return String(text || '')
+            .replace(/^[\s✦📂📁]+/u, '')
+            .trim();
+    }
+
+    function highlightSelection(element) {
+        const doc = frame.contentDocument;
+        if (!doc) return;
+
+        doc.querySelectorAll('.admin-preview-selected')
+            .forEach(el => {
+                el.classList.remove('admin-preview-selected');
+                el.style.outline = '';
+                el.style.outlineOffset = '';
+            });
+
+        if (element) {
+            element.classList.add('admin-preview-selected');
+            element.style.outline = '2px solid #ed7295';
+            element.style.outlineOffset = '2px';
+        }
+    }
+
+    function openGroupEditor(groupName, productTitle = '') {
+        if (!groupName) return;
+
+        if (typeof editGroup !== 'function') {
+            alert('그룹 수정 기능을 찾지 못했습니다.');
+            return;
+        }
+
+        // 존재하는 그룹인지 먼저 확인
+        const exists = Object.values(
+            typeof allProductsData !== 'undefined'
+                ? allProductsData : {}
+        ).some(item => item && item.group === groupName);
+
+        if (!exists) {
+            alert('등록된 그룹을 찾지 못했습니다.');
+            return;
+        }
+
+        selectedGroupName = groupName;
+
+        document.getElementById('liveSelectedName')
+            .textContent = productTitle
+                ? groupName + ' / ' + productTitle
+                : groupName;
+
+        document.getElementById('liveAddProduct')
+            .disabled = false;
+
+        if (typeof switchTab === 'function') {
+            switchTab('manage');
+        }
+
+        // 기존 그룹 수정 기능 그대로 사용
+        editGroup(groupName);
+
+        // 실제 선택한 상품 입력창에 포커스
+        if (productTitle) {
+            const rows = [
+                ...document.querySelectorAll(
+                    '#productRowsContainer .product-input-card'
+                )
+            ];
+
+            const row = rows.find(card =>
+                card.querySelector('.row-title')?.value.trim()
+                    === productTitle.trim()
+            );
+
+            if (row) {
+                row.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center'
+                });
+
+                row.querySelector('.row-title')?.focus({
+                    preventScroll: true
+                });
+            }
+        }
+    }
+
+    function handleCustomerClick(event) {
+        const target = event.target;
+
+        if (!(target instanceof frame.contentWindow.Element)) {
+            return;
+        }
+
+        const itemCard = target.closest('.item-card');
+        const groupTitle = target.closest('.group-title');
+
+        if (!itemCard && !groupTitle) {
+            // 검색창 및 더 보기 버튼은 정상 작동
+            return;
+        }
+
+        const group = target.closest('.group-container');
+        if (!group) return;
+
+        const heading = group.querySelector('.group-title');
+        if (!heading) return;
+
+        const groupName = cleanGroupName(heading.textContent);
+
+        // 고객 상품 링크 이동을 방지
+        // 관리자 미리보기의 클릭은 편집 동작으로 전환
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+
+        if (itemCard) {
+            const productTitle =
+                itemCard.querySelector('.item-title')
+                    ?.textContent.trim() || '';
+
+            highlightSelection(itemCard);
+            openGroupEditor(groupName, productTitle);
+        } else {
+            highlightSelection(groupTitle);
+            openGroupEditor(groupName);
+        }
+    }
+
+    frame.addEventListener('load', () => {
+        try {
+            const doc = frame.contentDocument;
+
+            if (!doc) return;
+
+            // 캡처 단계에서 클릭을 먼저 처리하여
+            // 상품 링크 이동과 클릭 통계 증가를 막음
+            doc.addEventListener(
+                'click',
+                handleCustomerClick,
+                true
+            );
+
+            // 그룹 제목을 클릭할 수 있게 표시
+            const style = doc.createElement('style');
+            style.textContent = `
+                .group-title,
+                .item-card {
+                    cursor: pointer !important;
+                }
+
+                .group-title:hover {
+                    background: #fff0f4;
+                    border-radius: 5px;
+                }
+
+                .item-card:hover {
+                    outline: 1px solid #ed7295;
+                }
+            `;
+            doc.head.appendChild(style);
+
+        } catch (error) {
+            console.error('미리보기 연결 실패:', error);
+            document.getElementById('liveSelectedName')
+                .textContent =
+                    '고객 페이지와 관리자 페이지의 주소를 확인하세요.';
+        }
+    });
+
+    // 신규 그룹
+    document.getElementById('liveAddGroup')
+        .addEventListener('click', () => {
+            selectedGroupName = '';
+
+            document.getElementById('liveSelectedName')
+                .textContent = '새 그룹 작성 중';
+
+            document.getElementById('liveAddProduct')
+                .disabled = true;
+
+            if (typeof switchTab === 'function') {
+                switchTab('manage');
+            }
+
+            if (typeof resetFormMode === 'function') {
+                resetFormMode();
+            }
+
+            document.getElementById('groupTitleInput')
+                ?.focus();
+        });
+
+    // 선택한 기존 그룹에 상품 추가
+    document.getElementById('liveAddProduct')
+        .addEventListener('click', () => {
+            if (!selectedGroupName) return;
+
+            if (typeof addProductRow !== 'function') {
+                alert('상품 추가 기능을 찾지 못했습니다.');
+                return;
+            }
+
+            // 다른 그룹이 편집 중이라면 선택 그룹을 열기
+            const editingName =
+                document.getElementById('editingGroupName')
+                    ?.value.trim();
+
+            if (editingName !== selectedGroupName) {
+                openGroupEditor(selectedGroupName);
+            }
+
+            addProductRow();
+
+            const rows = document.querySelectorAll(
+                '#productRowsContainer .product-input-card'
+            );
+
+            const last = rows[rows.length - 1];
+
+            if (last) {
+                last.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center'
+                });
+
+                last.querySelector('.row-title')?.focus({
+                    preventScroll: true
+                });
+            }
+        });
+
+    setMode('live');
+})();
+</script>
+
 </body>
 </html>
