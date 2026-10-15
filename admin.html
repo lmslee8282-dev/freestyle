@@ -1541,7 +1541,14 @@ async function saveGroupProducts() {
                 : db.ref('products').push().key;
 
             const oldProduct = allProductsData[id];
-
+const originalCreatedAt = editingGroupName
+    ? Math.min(
+        ...Object.values(allProductsData)
+            .filter(p => p && p.group === editingGroupName)
+            .map(p => Number(p.createdAt) || Date.now())
+    )
+    : Date.now();
+            
             const { id: ignoredId, ...record } = item;
 
             if (oldProduct) {
@@ -1555,9 +1562,10 @@ async function saveGroupProducts() {
                 );
             } else {
                 updates['products/' + id] = {
-                    ...record,
-                    clicks: 0
-                };
+    ...record,
+    createdAt: originalCreatedAt,
+    clicks: 0
+};
             }
         }
 
@@ -1859,8 +1867,34 @@ function renderLists() {
 
     let visibleGroups = 0;
 
-    [...groups.entries()].reverse().forEach(
-        ([groupName, groupItems]) => {
+    
+[...groups.entries()]
+    .sort((a, b) => {
+
+        const getCreatedAt = (items) => {
+            const times = items.map(item => {
+                if (Number.isFinite(Number(item.createdAt)) &&
+                    Number(item.createdAt) > 0) {
+                    return Number(item.createdAt);
+                }
+
+                // 과거 상품은 Firebase push ID를 기준으로 처리
+                return item.id || '';
+            });
+
+            const numericTimes = times.filter(
+                value => typeof value === 'number'
+            );
+
+            return numericTimes.length
+                ? Math.min(...numericTimes)
+                : 0;
+        };
+
+        return getCreatedAt(b[1]) - getCreatedAt(a[1]);
+    })
+    .forEach(([groupName, groupItems]) => {
+
 
             const matched =
                 groupName.toLowerCase().includes(keyword) ||
