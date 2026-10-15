@@ -58,6 +58,40 @@
         .item-title { font-size: 13px; font-weight: 600; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis; }
         
         .footer { margin-top: 40px; font-size: 11px; color: #555; }
+
+        /* 2026 soft editorial redesign — existing Firebase logic/layouts preserved */
+        :root { --rose:#ed7294; --rose-deep:#d94f77; --ink:#2d2930; --muted:#90838a; --paper:#fff; --line:#f2e4e7; --blush:#fff4f5; }
+        * { font-family:'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif; }
+        html { scroll-behavior:smooth; }
+        body { background:linear-gradient(165deg,#fff9f8 0%,#f9eceb 58%,#fff7f4 100%); color:var(--ink); padding:0 16px 55px; display:block; }
+        .container { max-width:510px; margin:0 auto; text-align:center; }
+        #profile-container { padding-top:53px; }
+        .profile-img { width:105px; height:105px; border-radius:50%; background:#fce5e9; border:4px solid white; box-shadow:0 6px 24px #b57e8924; margin-bottom:17px; color:var(--rose); }
+        h1 { font-size:23px; font-weight:800; letter-spacing:-.6px; margin-bottom:7px; }
+        p.sub { color:#9c8991; font-size:13px; margin-bottom:29px; line-height:1.65; }
+        .top-accent { width:42px; height:4px; border-radius:5px; background:#e9a5b6; margin:0 auto 31px; }
+        #content-list { text-align:left; }
+        .group-container { margin-bottom:27px; }
+        .group-title { font-size:13px; font-weight:750; letter-spacing:-.2px; color:#c96684; padding:0 3px 12px; border-bottom:none; margin-bottom:4px; }
+        .items-wrap { gap:10px; }
+        .item-card { background:#fff; color:var(--ink); border:1px solid #f6eeee; border-radius:16px; padding:13px; min-height:75px; gap:13px; box-shadow:0 4px 16px #8c61670d; transition:transform .2s,box-shadow .2s,border-color .2s; }
+        .item-card:hover { transform:translateY(-2px); border-color:#edb8c5; box-shadow:0 9px 24px #aa68751a; }
+        .item-card:active { transform:scale(.985); }
+        .item-img { width:58px; height:58px; border-radius:11px; background:#f8eeee; }
+        .item-info { min-width:0; }
+        .item-title { font-size:13px; font-weight:650; letter-spacing:-.3px; line-height:1.5; overflow-wrap:anywhere; }
+        .item-card:not(.col2):not(.col3):not(.carousel1):not(.carousel2)::after { content:'›'; color:#b5a3a9; font-size:25px; font-weight:300; margin-left:auto; padding-right:3px; }
+        .item-card.col2,.item-card.col3,.item-card.carousel1,.item-card.carousel2 { border-radius:15px; }
+        .item-card.col2 .item-img,.item-card.carousel2 .item-img { height:112px; }
+        .item-card.col3 .item-img { height:75px; }
+        .item-card.carousel1 .item-img { height:150px; }
+        .items-wrap.carousel { padding:5px 1px 13px; scroll-snap-type:x mandatory; }
+        .items-wrap.carousel .item-card { scroll-snap-align:start; }
+        .items-wrap.carousel::-webkit-scrollbar-thumb { background:#dfbac4; }
+        .footer { font-size:11px; color:#b8a3a9; margin-top:44px; }
+        .empty-state { text-align:center; color:var(--muted); padding:32px 10px; background:#fff; border-radius:16px; }
+        @media (min-width:700px) { body { padding-top:32px; } .container { background:#fff9f9a8; border:1px solid #faeeee; border-radius:32px; padding:0 25px 25px; box-shadow:0 18px 55px #aa7b8817; } }
+        @media (max-width:360px) { .item-title { font-size:12px; } .item-card { padding:10px; gap:10px; } .item-img { width:52px; height:52px; } }
     </style>
 </head>
 <body>
@@ -66,7 +100,8 @@
             <div class="profile-img">🔥</div>
         </div>
         <h1>FreeStyle 꿀템 저장소</h1>
-        <p class="sub">쇼츠 영상 속 추천 꿀템을 만나보세요!</p>
+        <p class="sub">쇼츠에서 소개한 좋은 아이템들을 한곳에 모았어요 ♡</p>
+        <div class="top-accent" aria-hidden="true"></div>
 
         <div id="content-list">
             <p style="color:#666;">상품을 불러오는 중...</p>
@@ -112,7 +147,7 @@
             container.innerHTML = '';
 
             if (!data) {
-                container.innerHTML = '<p style="color:#666;">등록된 상품이 없습니다.</p>';
+                container.innerHTML = '<p class="empty-state">아직 등록된 상품이 없어요 🌷</p>';
                 return;
             }
 
@@ -146,7 +181,10 @@
 
                 const groupDiv = document.createElement('div');
                 groupDiv.className = 'group-container';
-                groupDiv.innerHTML = '<div class="group-title">📂 ' + groupName + '</div>';
+                groupDiv.innerHTML = '<div class="group-title"></div>';
+                const groupTitleEl = groupDiv.querySelector('.group-title');
+                groupTitleEl.textContent = '✦ ' + groupName;
+                groupTitleEl.style.color = groupItems[0].groupColor || '#c96684';
 
                 const itemsWrap = document.createElement('div');
                 itemsWrap.className = 'items-wrap ' + (isCarousel ? 'carousel' : '');
@@ -161,11 +199,17 @@
 
                     card.className = 'item-card ' + layoutClass;
                     card.innerHTML = 
-                        '<img src="' + (item.image || 'https://via.placeholder.com/55') + '" class="item-img" alt="상품 이미지">' +
+                        '<img src="' + (item.image || 'https://via.placeholder.com/55') + '" class="item-img" loading="lazy" alt="상품 이미지">' +
                         '<div class="item-info">' +
                             '<div class="item-title">' + item.title + '</div>' +
                         '</div>';
                     
+                    card.querySelector('.item-title').textContent = item.title || '';
+                    // Legacy white text is adapted for the new white card surface.
+                    const savedColor = item.productTextColor;
+                    if (savedColor && !['#ffffff','#fff','white'].includes(savedColor.toLowerCase())) {
+                        card.querySelector('.item-title').style.color = savedColor;
+                    }
                     card.onclick = function() {
                         handleItemClick(item.id, item.link);
                     };
