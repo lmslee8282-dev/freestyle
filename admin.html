@@ -1,1388 +1,2005 @@
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FreeStyle 관리자 UI</title>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-    <style>
-        * { box-sizing: border-box; font-family: sans-serif; }
-        body { background: #f4f4f9; padding: 20px; display: flex; justify-content: center; }
-        
-        .admin-wrapper { display: flex; gap: 20px; width: 100%; max-width: 980px; justify-content: center; align-items: flex-start; }
-        
-        /* 📱 실시간 모바일 미리보기 패널 */
-        .preview-pane { width: 280px; background: #222; border-radius: 30px; padding: 15px 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); border: 6px solid #444; position: sticky; top: 20px; }
-        .preview-screen { background: #121212; border-radius: 20px; height: 500px; overflow-y: auto; padding: 12px; color: #fff; font-size: 11px; }
-        .preview-screen::-webkit-scrollbar { width: 3px; }
-        .preview-screen::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
-        
-        .preview-profile { width: 45px; height: 45px; border-radius: 50%; background: #333; margin: 0 auto 8px; object-fit: cover; display: block; }
-        .preview-title { font-size: 13px; font-weight: bold; text-align: center; margin-bottom: 2px; }
-        .preview-group-box { background: #1e1e1e; border: 1px solid #333; border-radius: 6px; padding: 8px; margin-top: 10px; }
-        .preview-group-title { font-size: 11px; font-weight: bold; color: #ff4757; margin-bottom: 6px; border-bottom: 1px solid #333; padding-bottom: 3px; }
-        
-        .preview-items-wrap { display: flex; gap: 6px; flex-wrap: wrap; }
-        .preview-items-wrap.carousel { display: flex; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; }
-        .preview-item-card { background: #2a2a2a; border-radius: 4px; padding: 4px; text-align: center; width: 100%; flex-shrink: 0; }
-        .preview-item-card.col2 { width: calc(50% - 3px); }
-        .preview-item-card.col3 { width: calc(33.333% - 4px); }
-        .preview-item-card.carousel1 { width: 75%; }
-        .preview-item-card.carousel2 { width: 50%; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FreeStyle 상품 관리</title>
 
-        .preview-item-img { width: 100%; height: 35px; border-radius: 3px; object-fit: cover; background: #444; }
-        .preview-item-text { font-size: 9px; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
-        /* 우측 편집 패널 */
-        .admin-box { background: #fff; width: 100%; max-width: 600px; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        h2, h3 { margin-bottom: 15px; text-align: center; color: #333; }
-        label { font-size: 12px; font-weight: bold; color: #666; margin-top: 10px; display: block; }
-        input, select, button { width: 100%; padding: 10px; margin-top: 5px; border-radius: 6px; border: 1px solid #ccc; font-size: 14px; }
-        
-        .tab-menu { display: flex; gap: 5px; margin-bottom: 20px; }
-        .tab-btn { flex: 1; padding: 8px 4px; background: #ddd; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 12px; text-align: center; }
-        .tab-btn.active { background: #ff4757; color: #fff; }
-        
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-
-        .profile-preview-box { text-align: center; margin-bottom: 15px; }
-        .current-profile-img { width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 2px solid #ddd; background: #eee; }
-        .file-box { border: 1px solid #ccc; border-radius: 6px; padding: 10px; background: #fafafa; margin-top: 5px; }
-
-        .layout-selector { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; margin-top: 5px; }
-        .layout-option { border: 2px solid #ddd; border-radius: 6px; padding: 6px 2px; text-align: center; cursor: pointer; background: #fafafa; font-size: 10px; font-weight: bold; color: #555; }
-        .layout-option input { display: none; }
-        .layout-option.selected { border-color: #ff4757; background: #fff0f1; color: #ff4757; }
-
-        /* 그룹 제목 행 레이아웃 (제목 입력란 + 색상 피커 가로 정렬) */
-        .group-title-row { display: flex; gap: 8px; align-items: center; margin-top: 5px; }
-        .group-title-row input { margin-top: 0; flex-grow: 1; }
-        .inline-color-picker { display: flex; align-items: center; gap: 4px; font-size: 11px; color: #666; flex-shrink: 0; background: #fafafa; border: 1px solid #ccc; padding: 4px 8px; border-radius: 6px; height: 41px; }
-        .inline-color-picker input[type="color"] { width: 26px; height: 26px; border: none; cursor: pointer; background: none; padding: 0; margin-top: 0; }
-
-        /* 상품 입력 카드 내부 레이아웃 */
-        .product-input-card { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 12px; margin-top: 10px; display: flex; align-items: center; gap: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); cursor: move; }
-        .product-input-card.dragging { opacity: 0.4; background: #e4e4e4; }
-
-        .drag-handle { font-size: 18px; color: #888; cursor: grab; padding: 0 4px; user-select: none; }
-        .drag-handle:active { cursor: grabbing; }
-
-        .image-drop-zone { width: 70px; height: 70px; border: 2px dashed #ccc; border-radius: 6px; display: flex; align-items: center; justify-content: center; background: #fafafa; cursor: pointer; position: relative; overflow: hidden; flex-shrink: 0; }
-        .image-drop-zone span.plus-icon { font-size: 20px; color: #aaa; }
-        .image-drop-zone img { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; }
-
-        .btn-delete-img { position: absolute; bottom: 2px; right: 2px; width: 20px; height: 20px; background: #ff4757; color: white; border: none; border-radius: 50%; font-size: 9px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 5; }
-        
-        .card-fields { flex-grow: 1; display: flex; flex-direction: column; gap: 5px; }
-        .card-fields input { margin-top: 0; padding: 7px; font-size: 13px; }
-        .title-input-row { display: flex; gap: 6px; align-items: center; }
-        .title-input-row input { flex-grow: 1; margin-top: 0; }
-
-        .card-actions { display: flex; flex-direction: column; align-items: center; justify-content: space-between; height: 70px; flex-shrink: 0; }
-        
-        .switch { position: relative; display: inline-block; width: 40px; height: 22px; }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .3s; border-radius: 22px; }
-        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
-        input:checked + .slider { background-color: #2ed573; }
-        input:checked + .slider:before { transform: translateX(18px); }
-
-        .btn-row-delete { background: none; border: none; font-size: 16px; cursor: pointer; color: #333; padding: 0; width: auto; margin-top: 5px; }
-        .btn-row-delete:hover { color: #ff4757; }
-
-        .btn-add-row { background: #2f3542; color: #fff; font-weight: bold; border: none; cursor: pointer; margin-top: 12px; font-size: 13px; }
-        .btn-add-row:hover { background: #57606f; }
-        
-        button.btn-action { background: #ff4757; color: #fff; font-weight: bold; border: none; cursor: pointer; margin-top: 20px; font-size: 15px; }
-        button.btn-action:hover { background: #e03847; }
-        button.btn-profile { background: #2f3542; color: #fff; font-weight: bold; border: none; cursor: pointer; margin-top: 15px; }
-        
-        .search-input { margin-bottom: 15px; }
-        .item-list, .analytics-section { margin-top: 15px; max-height: 400px; overflow-y: auto; padding-right: 5px; }
-        
-        .admin-item { display: flex; justify-content: space-between; align-items: center; background: #fafafa; padding: 8px 10px; border-radius: 6px; margin-bottom: 8px; border: 1px solid #eee; font-size: 13px; }
-        .admin-item-info { display: flex; align-items: center; gap: 10px; overflow: hidden; }
-        .admin-thumb { width: 40px; height: 40px; border-radius: 4px; object-fit: cover; background: #ddd; flex-shrink: 0; }
-        
-        .admin-btn-group { display: flex; gap: 4px; flex-shrink: 0; }
-        .btn-edit { background: #009432; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px; }
-        .btn-del { background: #333; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px; }
-        .btn-cancel { background: #666; color: #fff; margin-top: 10px; }
-
-        .analytics-item { display: flex; justify-content: space-between; align-items: center; background: #fff8f8; padding: 10px; border-radius: 6px; margin-bottom: 8px; border: 1px solid #ffdede; font-size: 13px; }
-        .click-count { font-weight: bold; color: #ff4757; background: rgba(255,71,87,0.1); padding: 3px 8px; border-radius: 12px; }
-
-        /* Modern pastel admin skin; structural IDs and handlers stay unchanged */
-        :root { --rose:#eb6488; --rose-pale:#fff0f4; --ink:#302b34; --muted:#8c8190; --line:#efe5eb; --surface:#fff; }
-        * { font-family:'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif; }
-        body { background:linear-gradient(135deg,#fcf4f6,#f6f4f8); color:var(--ink); padding:32px 20px; margin:0; min-height:100vh; }
-        .admin-wrapper { max-width:1180px; gap:26px; align-items:flex-start; }
-        .preview-pane { width:310px; flex:0 0 310px; border:7px solid #302f38; background:#302f38; padding:9px; border-radius:34px; top:24px; box-shadow:0 18px 35px #6d506126; }
-        .preview-screen { background:linear-gradient(#fff8f8,#f6e7e9); color:#302b34; border-radius:22px; height:630px; padding:20px 12px; }
-        .preview-profile { height:70px; width:70px; border:3px solid white; box-shadow:0 3px 10px #875e6b20; }
-        .preview-title { font-size:16px; color:var(--ink); }
-        .preview-group-box { background:transparent; border:0; padding:2px; margin-top:17px; }
-        .preview-group-title { color:var(--rose); border:0; padding:6px 0; font-size:12px; }
-        .preview-item-card { background:white; border:1px solid #f1e7e9; box-shadow:0 2px 8px #73485712; border-radius:10px; padding:9px; color:var(--ink); }
-        .preview-item-img { height:55px; border-radius:7px; background:#f5edef; }
-        .preview-item-text { font-size:10px; color:var(--ink); }
-        .admin-box { max-width:800px; border-radius:23px; padding:30px; box-shadow:0 14px 50px #6a506315; border:1px solid #f6edf1; margin-bottom:28px; }
-        h2 { text-align:left; font-size:23px; letter-spacing:-.7px; margin:0 0 23px; color:var(--ink); }
-        h3 { color:var(--ink); font-size:17px; text-align:left; letter-spacing:-.4px; margin:20px 0 18px; }
-        label { color:#665d68; font-size:12px; }
-        input,select,button { border:1px solid #e9e1e7; padding:12px; border-radius:11px; background:#fff; color:var(--ink); transition:border-color .2s,box-shadow .2s; }
-        input:focus,select:focus { outline:0; border-color:#e99ab0; box-shadow:0 0 0 3px #ffe9ef; }
-        input[type=color] { box-shadow:none; }
-        .tab-menu { gap:8px; padding:5px; background:#faf5f7; border-radius:14px; margin-bottom:22px; }
-        .tab-btn { background:transparent; color:#746671; border-radius:10px; margin:0; font-size:12px; padding:12px 6px; }
-        .tab-btn.active { color:#d7466f; background:white; box-shadow:0 3px 11px #a96c861c; }
-        .layout-selector { gap:8px; }
-        .layout-option { border-radius:11px; padding:12px 4px; font-size:11px; border:1px solid #eee2e8; background:#fcfafb; }
-        .layout-option.selected { border:1.5px solid var(--rose); background:var(--rose-pale); color:#d7466f; }
-        .inline-color-picker { height:45px; border-radius:10px; border-color:var(--line); background:#fcf8f9; }
-        .product-input-card { border-radius:14px; padding:13px; gap:11px; box-shadow:0 4px 16px #8666780a; border-color:var(--line); }
-        .product-input-card.dragging { background:#fce4eb; }
-        .image-drop-zone { border-color:#e5bdcb; background:#fff9fb; border-radius:10px; }
-        .image-drop-zone.dragover { background:#ffe5ed; border-color:var(--rose); }
-        .card-fields { min-width:0; }
-        .card-fields input { min-width:0; }
-        .btn-add-row { background:#fff0f4; color:#cd4970; border:1px dashed #e7a5b8; border-radius:12px; padding:14px; }
-        .btn-add-row:hover { background:#ffe7ee; }
-        button.btn-action { background:linear-gradient(110deg,#ee6c90,#de537e); box-shadow:0 6px 16px #e25c802e; border-radius:12px; padding:14px; }
-        button.btn-action:hover { background:#d94a71; }
-        button.btn-profile { background:#3e3441; border-radius:12px; padding:14px; }
-        button.btn-cancel { background:#f2eef1; color:#655c65; box-shadow:none; }
-        .search-input { margin-bottom:16px; }
-        .item-list,.analytics-section { max-height:510px; }
-        .admin-item { background:#fff; padding:12px; border:1px solid var(--line); border-radius:12px; gap:8px; }
-        .admin-thumb { border-radius:9px; width:47px; height:47px; }
-        .btn-edit,.btn-del { width:auto; padding:9px 11px; margin:0; border-radius:8px; font-size:11px; }
-        .btn-edit { background:#f9e4ec; color:#c1436a; }
-        .btn-del { background:#f1edf0; color:#635b64; }
-        .analytics-item { border:1px solid var(--line); border-radius:11px; background:#fffafa; gap:10px; }
-        .click-count { color:#bf4168; background:#fde6ed; flex-shrink:0; }
-        .file-box { border-radius:12px; border-color:var(--line); background:#fffbfc; }
-        .current-profile-img { border:4px solid #fff; box-shadow:0 3px 14px #0001; }
-        input:checked + .slider { background-color:#e87297; }
-        @media(max-width:850px) { body{padding:16px 10px;} .admin-wrapper{ flex-direction:column; align-items:stretch; } .preview-pane{ width:100%; max-width:370px; flex:auto; position:static; margin:0 auto; } .admin-box{ max-width:none; padding:20px 15px; } }
-        @media(max-width:470px) { .layout-selector{grid-template-columns:repeat(3,1fr);} .product-input-card{flex-wrap:wrap;} .card-fields{flex:1 1 150px;} .card-actions{height:70px;} .admin-item{flex-wrap:wrap;} .admin-btn-group{margin-left:auto;} .tab-btn{font-size:11px;} }
-        
-/* ===== FreeStyle 관리자 UI 리뉴얼 ===== */
+<style>
 :root {
-  --admin-bg: #f8f3f4;
-  --admin-white: #ffffff;
-  --admin-pink: #f4779a;
-  --admin-soft: #fff0f4;
-  --admin-text: #30313b;
-  --admin-muted: #8c8993;
-  --admin-border: #eee4e8;
-  --admin-shadow: 0 6px 26px rgba(64,45,58,.06);
+    --pink: #ed7295;
+    --pink-dark: #d85178;
+    --pink-light: #fff0f4;
+    --bg: #f9f4f6;
+    --white: #ffffff;
+    --text: #302d36;
+    --muted: #8c8490;
+    --line: #eee4e9;
+    --shadow: 0 8px 28px rgba(72,45,62,.06);
 }
 
 * {
-  box-sizing: border-box;
-  font-family: 'Apple SD Gothic Neo', 'Malgun Gothic',
-               sans-serif;
+    box-sizing: border-box;
+    font-family: 'Pretendard','Apple SD Gothic Neo',
+                 'Malgun Gothic',sans-serif;
 }
 
 body {
-  margin: 0;
-  padding: 30px 20px;
-  background: var(--admin-bg);
-  color: var(--admin-text);
-  display: flex;
-  justify-content: center;
+    margin: 0;
+    padding: 30px 20px;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+}
+
+button, input, select {
+    font: inherit;
+}
+
+button {
+    cursor: pointer;
 }
 
 .admin-wrapper {
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  gap: 25px;
-  width: 100%;
-  max-width: 1250px;
+    max-width: 1250px;
+    margin: auto;
+    display: grid;
+    grid-template-columns: 300px minmax(0,1fr);
+    gap: 25px;
+    align-items: start;
 }
 
-/* 모바일 미리보기 패널 */
+/* 모바일 미리보기 */
 .preview-pane {
-  width: 295px;
-  flex-shrink: 0;
-  position: sticky;
-  top: 24px;
-  background: #fff;
-  padding: 13px;
-  border: 5px solid #e9e1e4;
-  border-radius: 35px;
-  box-shadow: 0 15px 40px rgba(0,0,0,.09);
+    position: sticky;
+    top: 24px;
+    padding: 12px;
+    border: 5px solid #e8dee3;
+    border-radius: 35px;
+    background: white;
+    box-shadow: var(--shadow);
+}
+
+.preview-label {
+    padding: 5px 0 12px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 2px;
 }
 
 .preview-screen {
-  background: #f8eff0;
-  color: #30313b;
-  height: 570px;
-  overflow-y: auto;
-  padding: 19px 12px;
-  border-radius: 25px;
-  font-size: 12px;
+    height: 570px;
+    overflow-y: auto;
+    padding: 22px 13px;
+    background: #fbf0f3;
+    border-radius: 24px;
+    scrollbar-width: thin;
 }
 
-.preview-screen::-webkit-scrollbar {
-  width: 4px;
-}
-
-.preview-screen::-webkit-scrollbar-thumb {
-  background: #e2c8d0;
-  border-radius: 8px;
-}
-
-/* 미리보기 프로필 */
 .preview-profile {
-  width: 65px;
-  height: 65px;
-  border-radius: 50%;
-  display: block;
-  margin: 12px auto;
-  border: 3px solid white;
-  background: #fff;
-  object-fit: cover;
-  box-shadow: 0 3px 12px rgba(0,0,0,.07);
+    width: 70px;
+    height: 70px;
+    display: block;
+    margin: 10px auto;
+    border-radius: 50%;
+    background: white;
+    border: 3px solid white;
+    object-fit: cover;
 }
 
 .preview-title {
-  text-align: center;
-  font-size: 15px;
-  font-weight: 800;
-  color: #30313b;
-  margin: 8px 0;
+    text-align: center;
+    font-size: 16px;
+    font-weight: 800;
 }
 
-.preview-screen > div[style] {
-  color: #8c8993 !important;
+.preview-subtitle {
+    margin: 8px 0 25px;
+    color: #91868d;
+    font-size: 11px;
+    text-align: center;
 }
 
-/* 미리보기 상품 그룹 */
 .preview-group-box {
-  background: transparent;
-  border: none;
-  border-radius: 0;
-  padding: 0;
-  margin-top: 25px;
+    margin-top: 20px;
 }
 
 .preview-group-title {
-  font-size: 12px;
-  font-weight: 800;
-  color: var(--admin-pink);
-  padding-bottom: 9px;
-  margin-bottom: 12px;
-  border-bottom: 1px solid #eadce0;
+    margin-bottom: 11px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eadbe0;
+    font-size: 12px;
+    font-weight: 800;
 }
 
 .preview-items-wrap {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 7px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
 }
 
 .preview-items-wrap.carousel {
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  padding-bottom: 8px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 8px;
 }
 
 .preview-item-card {
-  width: 100%;
-  background: white;
-  border: 1px solid #f2e8eb;
-  border-radius: 11px;
-  padding: 9px;
-  box-shadow: 0 3px 12px rgba(0,0,0,.04);
-  text-align: center;
-  flex-shrink: 0;
+    width: 100%;
+    flex-shrink: 0;
+    padding: 9px;
+    border: 1px solid #f1e6e9;
+    border-radius: 11px;
+    background: white;
+    text-align: center;
+    overflow: hidden;
+}
+
+.preview-item-card.list {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    text-align: left;
 }
 
 .preview-item-card.col2 {
-  width: calc(50% - 4px);
+    width: calc(50% - 4px);
 }
 
 .preview-item-card.col3 {
-  width: calc(33.333% - 5px);
+    width: calc(33.333% - 6px);
 }
 
 .preview-item-card.carousel1 {
-  width: 75%;
+    width: 75%;
 }
 
 .preview-item-card.carousel2 {
-  width: 50%;
+    width: 50%;
 }
 
 .preview-item-img {
-  width: 100%;
-  height: 58px;
-  border-radius: 7px;
-  object-fit: cover;
-  background: #f3f3f3;
+    width: 100%;
+    height: 65px;
+    border-radius: 7px;
+    object-fit: cover;
+    background: #f4edf0;
+}
+
+.preview-item-card.list .preview-item-img {
+    width: 45px;
+    height: 45px;
+    flex-shrink: 0;
 }
 
 .preview-item-text {
-  font-size: 10px;
-  line-height: 1.5;
-  color: #33343c !important;
-  margin-top: 6px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+    margin-top: 5px;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
 }
 
-/* 관리자 메인 박스 */
+.preview-item-card.list .preview-item-text {
+    margin: 0;
+}
+
+/* 관리자 패널 */
 .admin-box {
-  width: 100%;
-  max-width: 780px;
-  min-width: 0;
-  padding: 30px;
-  margin-bottom: 30px;
-  background: var(--admin-white);
-  border: 1px solid #f3e9ec;
-  border-radius: 24px;
-  box-shadow: var(--admin-shadow);
+    min-width: 0;
+    padding: 30px;
+    background: white;
+    border: 1px solid #f0e7eb;
+    border-radius: 24px;
+    box-shadow: var(--shadow);
 }
 
-h2 {
-  font-size: 23px;
-  font-weight: 800;
-  text-align: left;
-  color: #2b2c35;
-  margin: 0 0 26px;
+.top-title {
+    margin: 0 0 7px;
+    font-size: 25px;
+    letter-spacing: -.8px;
 }
 
-h3 {
-  font-size: 17px;
-  font-weight: 800;
-  color: #33343c;
-  text-align: left;
-  margin: 0 0 18px;
+.top-desc {
+    color: var(--muted);
+    font-size: 13px;
+    margin: 0 0 24px;
 }
 
-/* 탭 메뉴 */
+/* 요약 통계 */
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(3,minmax(0,1fr));
+    gap: 11px;
+    margin-bottom: 26px;
+}
+
+.summary-card {
+    padding: 17px;
+    background: #fff8fa;
+    border: 1px solid #f6e4ea;
+    border-radius: 15px;
+}
+
+.summary-label {
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.summary-value {
+    margin-top: 8px;
+    font-size: 25px;
+    font-weight: 800;
+    color: var(--pink-dark);
+}
+
+/* 탭 */
 .tab-menu {
-  display: flex;
-  gap: 8px;
-  padding: 6px;
-  margin-bottom: 29px;
-  background: #f8f6f7;
-  border-radius: 14px;
+    display: flex;
+    gap: 8px;
+    padding: 6px;
+    margin-bottom: 28px;
+    border-radius: 13px;
+    background: #f8f5f7;
 }
 
 .tab-btn {
-  flex: 1;
-  border: none;
-  background: transparent;
-  color: #777580;
-  border-radius: 11px;
-  padding: 13px 6px;
-  margin: 0;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: .2s;
+    flex: 1;
+    min-width: 0;
+    padding: 13px 6px;
+    background: transparent;
+    border: 0;
+    border-radius: 10px;
+    color: #837a84;
+    font-size: 13px;
+    font-weight: 700;
 }
 
 .tab-btn.active {
-  background: var(--admin-pink);
-  color: white;
-  box-shadow: 0 4px 12px rgba(244,119,154,.22);
+    background: var(--pink);
+    color: white;
+    box-shadow: 0 3px 12px rgba(237,114,149,.20);
 }
 
-.tab-btn:hover:not(.active) {
-  background: #ffeaf0;
-  color: #df6588;
+.tab-content {
+    display: none;
 }
 
-/* 폼 입력 */
-label {
-  display: block;
-  color: #5c5b64;
-  font-size: 13px;
-  font-weight: 700;
-  margin-top: 17px;
-  margin-bottom: 7px;
+.tab-content.active {
+    display: block;
 }
 
-input,
-select {
-  width: 100%;
-  padding: 12px 14px;
-  margin-top: 5px;
-  border: 1px solid #e8e4e8;
-  border-radius: 10px;
-  background: #fcfbfc;
-  color: #30313b;
-  font-size: 13px;
-  outline: none;
-  transition: .2s;
+h3 {
+    margin: 18px 0;
+    font-size: 18px;
 }
 
-input:focus,
-select:focus {
-  border-color: var(--admin-pink);
-  background: white;
-  box-shadow: 0 0 0 3px rgba(244,119,154,.11);
+label.field-label {
+    display: block;
+    margin: 17px 0 8px;
+    color: #655c65;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+input[type=text],
+input[type=url],
+input[type=search] {
+    width: 100%;
+    min-width: 0;
+    padding: 12px 13px;
+    border: 1px solid #e7dfe4;
+    border-radius: 10px;
+    background: #fcfafb;
+    color: var(--text);
+    outline: none;
+    font-size: 13px;
+}
+
+input:focus {
+    border-color: var(--pink);
 }
 
 input::placeholder {
-  color: #aaa6ad;
+    color: #aaa0a9;
 }
 
-/* 그룹 제목 */
 .group-title-row {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  margin-top: 5px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
-.group-title-row input {
-  min-width: 0;
-  flex-grow: 1;
+.group-title-row > input {
+    flex: 1;
 }
 
 .inline-color-picker {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  flex-shrink: 0;
-  height: 44px;
-  padding: 5px 8px;
-  background: #fcfbfc;
-  border: 1px solid #e8e4e8;
-  border-radius: 10px;
-  color: #797780;
-  font-size: 11px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    padding: 7px 9px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    color: var(--muted);
+    font-size: 11px;
 }
 
-.inline-color-picker input[type="color"] {
-  width: 28px;
-  height: 28px;
-  margin: 0;
-  padding: 0;
-  border: none;
-  background: transparent;
-  cursor: pointer;
+input[type=color] {
+    width: 28px;
+    height: 28px;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
 }
 
-/* 레이아웃 선택 */
+/* 레이아웃 */
 .layout-selector {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0,1fr));
-  gap: 7px;
-  margin-top: 11px;
+    display: grid;
+    grid-template-columns: repeat(5,minmax(0,1fr));
+    gap: 8px;
 }
 
 .layout-option {
-  margin: 0;
-  padding: 14px 4px;
-  background: #faf9fa;
-  border: 1px solid #ebe6e9;
-  border-radius: 11px;
-  font-size: 11px;
-  font-weight: 700;
-  color: #74727b;
-  text-align: center;
-  cursor: pointer;
-  transition: .2s;
+    padding: 13px 5px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #fcfafb;
+    color: #716a73;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
 }
 
 .layout-option input {
-  display: none;
+    display: none;
 }
 
 .layout-option.selected {
-  background: #fff0f4;
-  border: 2px solid var(--admin-pink);
-  color: #e9668d;
+    border-color: var(--pink);
+    background: var(--pink-light);
+    color: var(--pink-dark);
 }
 
-.layout-option:hover {
-  border-color: #f3abc0;
-}
-
-/* 상품 입력 카드 */
+/* 상품 입력 */
 .product-input-card {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 15px;
-  margin-top: 13px;
-  background: #fff;
-  border: 1px solid #ede6e9;
-  border-radius: 15px;
-  box-shadow: 0 3px 12px rgba(0,0,0,.025);
-  cursor: move;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 12px;
+    padding: 14px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: white;
 }
 
 .product-input-card.dragging {
-  opacity: .45;
-  background: #fff0f4;
+    opacity: .45;
+    background: #fff0f4;
 }
 
 .drag-handle {
-  color: #b9b0b8;
-  font-size: 19px;
-  cursor: grab;
+    cursor: grab;
+    color: #aaa0a9;
+    font-size: 20px;
+    user-select: none;
+}
+
+.image-box {
+    position: relative;
+    flex-shrink: 0;
 }
 
 .image-drop-zone {
-  width: 74px;
-  height: 74px;
-  border: 2px dashed #e6cbd4;
-  border-radius: 12px;
-  background: #fff8fa;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  cursor: pointer;
+    position: relative;
+    width: 76px;
+    height: 76px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px dashed #e8bccc;
+    border-radius: 10px;
+    background: #fff8fa;
+    overflow: hidden;
+    cursor: pointer;
 }
 
 .image-drop-zone.dragover {
-  border-color: var(--admin-pink);
-  background: #ffeaf0;
+    border-color: var(--pink);
+    background: #ffe8ee;
 }
 
-.image-drop-zone span.plus-icon {
-  color: var(--admin-pink);
-  font-size: 25px;
+.plus-icon {
+    font-size: 24px;
+    color: var(--pink);
 }
 
 .image-drop-zone img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.card-fields {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-}
-
-.card-fields input {
-  margin: 0;
-  padding: 10px;
-  font-size: 12px;
-}
-
-.title-input-row {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-}
-
-.title-input-row > input {
-  flex: 1;
-  min-width: 0;
-}
-
-.card-actions {
-  flex-shrink: 0;
-  height: 74px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: space-between;
-}
-
-/* 게시 여부 스위치 */
-.slider {
-  background: #ded8de;
-}
-
-input:checked + .slider {
-  background: var(--admin-pink);
-}
-
-/* 버튼 공통 */
-button {
-  cursor: pointer;
-  transition: .2s;
-}
-
-.btn-add-row {
-  background: #fff0f4;
-  color: #df6388;
-  border: 1px dashed #eda9bc;
-  border-radius: 11px;
-  padding: 14px;
-  margin-top: 15px;
-  font-weight: 800;
-}
-
-.btn-add-row:hover {
-  background: #ffe3ec;
-}
-
-button.btn-action {
-  background: var(--admin-pink);
-  color: white;
-  border: none;
-  border-radius: 12px;
-  padding: 15px;
-  margin-top: 20px;
-  font-weight: 800;
-  box-shadow: 0 5px 15px rgba(244,119,154,.20);
-}
-
-button.btn-action:hover {
-  background: #e9668d;
-}
-
-button.btn-profile {
-  background: var(--admin-pink);
-  color: white;
-  border: none;
-  border-radius: 11px;
-  padding: 14px;
-  font-weight: 800;
-}
-
-button.btn-action.btn-cancel {
-  background: #aaa5ae;
-  box-shadow: none;
-}
-
-.btn-row-delete {
-  width: auto;
-  border: none;
-  background: transparent;
-  color: #aaa0a8;
-  font-size: 18px;
-}
-
-.btn-row-delete:hover {
-  color: #e9668d;
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 .btn-delete-img {
-  background: var(--admin-pink);
-  color: white;
+    position: absolute;
+    right: -5px;
+    bottom: -5px;
+    width: 24px;
+    height: 24px;
+    border: 0;
+    border-radius: 50%;
+    background: var(--pink);
+    color: white;
+    font-size: 12px;
 }
 
-/* 등록된 그룹 목록 */
-.item-list {
-  margin-top: 25px;
-  max-height: 450px;
-  overflow-y: auto;
-  padding-right: 4px;
+.card-fields {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
 }
 
-.admin-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-  padding: 13px;
-  margin-bottom: 9px;
-  border: 1px solid #eee7eb;
-  border-radius: 13px;
-  background: #fff;
-  font-size: 13px;
+.title-input-row {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.title-input-row > input {
+    flex: 1;
+}
+
+.card-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-around;
+    height: 76px;
+}
+
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 40px;
+    height: 22px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    inset: 0;
+    border-radius: 22px;
+    background: #d4ccd2;
+    cursor: pointer;
+}
+
+.slider:before {
+    content: "";
+    position: absolute;
+    left: 3px;
+    top: 3px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: white;
+    transition: .2s;
+}
+
+.switch input:checked + .slider {
+    background: var(--pink);
+}
+
+.switch input:checked + .slider:before {
+    transform: translateX(18px);
+}
+
+.btn-row-delete {
+    border: none;
+    background: transparent;
+    font-size: 19px;
+}
+
+.btn-add-row {
+    width: 100%;
+    margin-top: 14px;
+    padding: 14px;
+    border: 1px dashed #e9afc0;
+    border-radius: 11px;
+    background: #fff0f4;
+    color: var(--pink-dark);
+    font-weight: 800;
+}
+
+.btn-action,
+.btn-profile {
+    width: 100%;
+    margin-top: 17px;
+    padding: 15px;
+    border: none;
+    border-radius: 12px;
+    background: var(--pink);
+    color: white;
+    font-size: 14px;
+    font-weight: 800;
+}
+
+.btn-action:hover,
+.btn-profile:hover {
+    background: var(--pink-dark);
+}
+
+.btn-action:disabled {
+    opacity: .55;
+    cursor: not-allowed;
+}
+
+.btn-cancel {
+    background: #aaa3ad;
+}
+
+.divider {
+    margin: 30px 0;
+    border: none;
+    border-top: 1px solid var(--line);
+}
+
+/* 등록 그룹 */
+.search-input {
+    margin-bottom: 15px;
+}
+
+.item-list,
+.analytics-section {
+    max-height: 480px;
+    overflow-y: auto;
+}
+
+.admin-item,
+.analytics-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px;
+    margin-bottom: 9px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: white;
 }
 
 .admin-item-info {
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 11px;
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    min-width: 0;
+    flex: 1;
 }
 
 .admin-thumb {
-  width: 47px;
-  height: 47px;
-  border-radius: 9px;
-  object-fit: cover;
-  flex-shrink: 0;
+    width: 46px;
+    height: 46px;
+    flex-shrink: 0;
+    border-radius: 9px;
+    object-fit: cover;
+    background: #f0edf0;
+}
+
+.item-name {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.item-meta {
+    margin-top: 4px;
+    color: var(--muted);
+    font-size: 11px;
 }
 
 .admin-btn-group {
-  display: flex;
-  gap: 6px;
-  flex-shrink: 0;
+    display: flex;
+    gap: 5px;
+    flex-shrink: 0;
 }
 
 .btn-edit,
 .btn-del {
-  width: auto;
-  margin: 0;
-  padding: 8px 11px;
-  border: none;
-  border-radius: 8px;
-  font-size: 11px;
-  font-weight: 700;
+    padding: 9px 11px;
+    border: none;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 700;
 }
 
 .btn-edit {
-  background: #edf6f0;
-  color: #369865;
+    background: #eaf6ee;
+    color: #268953;
 }
 
 .btn-del {
-  background: #fff0f2;
-  color: #dd637a;
-}
-
-/* 프로필 설정 */
-.current-profile-img {
-  width: 110px;
-  height: 110px;
-  border-radius: 50%;
-  border: 4px solid #fff;
-  box-shadow: 0 5px 20px rgba(0,0,0,.09);
-  object-fit: cover;
-}
-
-.file-box {
-  padding: 14px;
-  background: #faf8f9;
-  border: 1px dashed #e8ccd5;
-  border-radius: 12px;
-}
-
-/* 분석 대시보드 */
-.analytics-section {
-  max-height: 450px;
-  overflow-y: auto;
-  margin-top: 20px;
-}
-
-.analytics-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-  padding: 14px;
-  margin-bottom: 9px;
-  background: #fff;
-  border: 1px solid #eee7eb;
-  border-radius: 12px;
-  font-size: 12px;
+    background: #fff0f2;
+    color: #d85b75;
 }
 
 .click-count {
-  flex-shrink: 0;
-  background: #fff0f4;
-  color: #e76c91;
-  border-radius: 20px;
-  padding: 6px 11px;
-  font-weight: 800;
+    flex-shrink: 0;
+    padding: 6px 10px;
+    border-radius: 20px;
+    background: var(--pink-light);
+    color: var(--pink-dark);
+    font-size: 12px;
+    font-weight: 800;
 }
 
-/* 태블릿 */
-@media(max-width: 900px) {
-  .admin-wrapper {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .preview-pane {
-    position: static;
-    width: 100%;
-    max-width: 420px;
-    margin: 0 auto;
-  }
-
-  .admin-box {
-    max-width: 100%;
-  }
+.profile-preview-box {
+    margin: 20px 0;
+    text-align: center;
 }
 
-/* 모바일 관리자 */
-@media(max-width: 540px) {
-  body {
-    padding: 12px;
-  }
-
-  .admin-box {
-    padding: 18px 14px;
-    border-radius: 18px;
-  }
-
-  h2 {
-    font-size: 20px;
-  }
-
-  .tab-btn {
-    font-size: 11px;
-    padding: 11px 3px;
-  }
-
-  .layout-selector {
-    grid-template-columns: repeat(3, minmax(0,1fr));
-  }
-
-  .product-input-card {
-    padding: 10px;
-    gap: 7px;
-  }
-
-  .image-drop-zone {
-    width: 52px;
-    height: 60px;
-  }
-
-  .card-fields input {
-    font-size: 11px;
-    padding: 8px;
-  }
-
-  .title-input-row .inline-color-picker {
-    padding: 3px;
-    font-size: 0;
-  }
-
-  .admin-item {
-    flex-wrap: wrap;
-  }
-
-  .admin-btn-group {
-    margin-left: auto;
-  }
+.current-profile-img {
+    width: 110px;
+    height: 110px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: #f0edf0;
 }
 
-    </style>
+.file-box {
+    padding: 13px;
+    border: 1px dashed #e8c4cf;
+    border-radius: 12px;
+    background: #fffafb;
+}
+
+.help-text {
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.7;
+}
+
+.empty-text {
+    padding: 25px;
+    color: var(--muted);
+    text-align: center;
+    font-size: 13px;
+}
+
+@media(max-width:900px) {
+    .admin-wrapper {
+        grid-template-columns: 1fr;
+    }
+
+    .preview-pane {
+        position: static;
+        max-width: 370px;
+        width: 100%;
+        margin: auto;
+    }
+}
+
+@media(max-width:540px) {
+    body {
+        padding: 12px;
+    }
+
+    .admin-box {
+        padding: 18px 13px;
+    }
+
+    .top-title {
+        font-size: 21px;
+    }
+
+    .summary-card {
+        padding: 12px 8px;
+    }
+
+    .summary-value {
+        font-size: 20px;
+    }
+
+    .tab-btn {
+        font-size: 11px;
+        padding: 11px 3px;
+    }
+
+    .layout-selector {
+        grid-template-columns: repeat(3,1fr);
+    }
+
+    .product-input-card {
+        gap: 7px;
+        padding: 10px;
+    }
+
+    .image-drop-zone {
+        width: 55px;
+        height: 60px;
+    }
+
+    .card-fields input {
+        font-size: 11px;
+        padding: 9px 7px;
+    }
+
+    .title-input-row .inline-color-picker {
+        font-size: 0;
+        padding: 4px;
+    }
+
+    .admin-item {
+        flex-wrap: wrap;
+    }
+
+    .admin-btn-group {
+        margin-left: auto;
+    }
+}
+</style>
 </head>
+
 <body>
-    <div class="admin-wrapper">
-        <!-- 📱 실시간 모바일 미리보기 패널 -->
-        <div class="preview-pane">
-            <div style="text-align:center; color:#888; font-size:10px; margin-bottom:6px;">LIVE PREVIEW</div>
-            <div class="preview-screen" id="livePreviewScreen">
-                <img id="prevProfileImg" class="preview-profile" src="" alt="프로필">
-                <div class="preview-title">FreeStyle 꿀템 저장소</div>
-                <div style="font-size:9px; color:#888; text-align:center; margin-bottom:10px;">쇼츠 속 꿀템 모음</div>
-                
-                <div class="preview-group-box">
-                    <div class="preview-group-title" id="prevGroupTitle" style="color: #df6184;">대표 문구를 입력하세요</div>
-                    <div class="preview-items-wrap" id="prevItemsWrap"></div>
+
+<div class="admin-wrapper">
+
+    <!-- 모바일 미리보기 -->
+    <aside class="preview-pane">
+        <div class="preview-label">LIVE PREVIEW</div>
+
+        <div class="preview-screen" id="livePreviewScreen">
+            <img id="prevProfileImg"
+                 class="preview-profile"
+                 alt="프로필">
+
+            <div class="preview-title">
+                FreeStyle 꿀템 저장소
+            </div>
+
+            <div class="preview-subtitle">
+                쇼츠 속 추천 꿀템을 만나보세요!
+            </div>
+
+            <div class="preview-group-box">
+                <div class="preview-group-title"
+                     id="prevGroupTitle">
+                    대표 문구를 입력하세요
+                </div>
+
+                <div class="preview-items-wrap"
+                     id="prevItemsWrap">
                 </div>
             </div>
         </div>
+    </aside>
 
-        <!-- 우측 관리자 편집 패널 -->
-        <div class="admin-box">
-            <h2>🛠️ 채널 통합 관리자</h2>
+    <!-- 관리자 패널 -->
+    <main class="admin-box">
 
-            <div class="tab-menu">
-                <button class="tab-btn active" onclick="switchTab('manage')">📦 상품 관리</button>
-                <button class="tab-btn" onclick="switchTab('profile')">⚙️ 프로필 설정</button>
-                <button class="tab-btn" onclick="switchTab('analytics')">📊 분석 대시보드</button>
+        <h1 class="top-title">FreeStyle 관리자</h1>
+        <p class="top-desc">
+            상품 등록부터 클릭 통계까지 한 곳에서 관리하세요.
+        </p>
+
+        <div class="summary-grid">
+            <div class="summary-card">
+                <div class="summary-label">전체 그룹</div>
+                <div class="summary-value" id="totalGroups">0</div>
             </div>
 
-            <!-- [탭 1] 그룹형 상품 등록 및 수정 관리 -->
-            <div id="tab-manage" class="tab-content active">
-                <h3 id="formModeTitle">➕ 그룹 상품 등록</h3>
-                <input type="hidden" id="editingGroupName" value="">
-
-                <label>대표 문구 (그룹 제목) 및 색상</label>
-                <div class="group-title-row">
-                    <input type="text" id="groupTitleInput" placeholder="그룹 링크 상단에 문구가 노출됩니다." oninput="updateLivePreview()">
-                    <div class="inline-color-picker" title="대표문구 색상 선택">
-                        색상 <input type="color" id="groupTextColor" value="#ff4757" onchange="updateLivePreview()">
-                    </div>
-                </div>
-
-                <label style="margin-top:15px;">레이아웃 배치 선택</label>
-                <div class="layout-selector">
-                    <label class="layout-option selected" id="layoutOpt_list" onclick="setLayout('list')">
-                        <input type="radio" name="layoutType" value="list" checked> 기본 배치
-                    </label>
-                    <label class="layout-option" id="layoutOpt_col2" onclick="setLayout('col2')">
-                        <input type="radio" name="layoutType" value="col2"> 2열 배치
-                    </label>
-                    <label class="layout-option" id="layoutOpt_col3" onclick="setLayout('col3')">
-                        <input type="radio" name="layoutType" value="col3"> 3열 배치
-                    </label>
-                    <label class="layout-option" id="layoutOpt_carousel1" onclick="setLayout('carousel1')">
-                        <input type="radio" name="layoutType" value="carousel1"> 1캐러셀
-                    </label>
-                    <label class="layout-option" id="layoutOpt_carousel2" onclick="setLayout('carousel2')">
-                        <input type="radio" name="layoutType" value="carousel2"> 2캐러셀
-                    </label>
-                </div>
-
-                <label style="margin-top:15px; font-weight:bold; color:#ff4757;">링크 목록</label>
-                <div id="productRowsContainer"></div>
-
-                <button class="btn-add-row" onclick="addProductRow()">+ 링크 추가</button>
-                <button class="btn-action" id="submitBtn" onclick="saveGroupProducts()">🚀 그룹 상품 한 번에 등록하기</button>
-                <button class="btn-action btn-cancel" id="cancelBtn" onclick="resetFormMode()" style="display:none;">취소 (신규 등록 모드로 전환)</button>
-
-                <hr style="margin: 25px 0;">
-
-                <div class="item-list">
-                    <h3>📋 등록된 그룹 목록 (수정/삭제)</h3>
-                    <input type="text" id="searchInput" class="search-input" placeholder="🔍 상품명 또는 그룹 검색..." oninput="filterAdminList()">
-                    <div id="admin-list"></div>
-                </div>
+            <div class="summary-card">
+                <div class="summary-label">게시 상품</div>
+                <div class="summary-value" id="activeProducts">0</div>
             </div>
 
-            <!-- [탭 2] 프로필 설정 -->
-            <div id="tab-profile" class="tab-content">
-                <h3>👤 프로필 설정</h3>
-                <p style="font-size:11px; color:#888; text-align:center; margin-bottom:20px;">메인 페이지 상단에 노출될 프로필 이미지를 관리합니다.</p>
-                
-                <label style="text-align:center;">현재 프로필 이미지</label>
-                <div class="profile-preview-box">
-                    <img id="currentProfileView" class="current-profile-img" src="" alt="프로필">
-                </div>
-
-                <label>새 프로필 이미지 선택</label>
-                <div class="file-box">
-                    <input type="file" id="profileFileInput" accept="image/*">
-                </div>
-
-                <button class="btn-profile" onclick="updateProfileImage()">💾 프로필 이미지 변경 저장하기</button>
-            </div>
-
-            <!-- [탭 3] 분석 대시보드 -->
-            <div id="tab-analytics" class="tab-content">
-                <h3>📊 BEST 클릭 순위 (실시간)</h3>
-                <p style="font-size:11px; color:#888; text-align:center; margin-bottom:15px;">어떤 상품이 시청자들의 클릭을 많이 받았는지 확인하세요.</p>
-                <div class="analytics-section" id="analytics-list">
-                    <p style="font-size:12px; color:#888; text-align:center;">집계된 데이터가 없습니다.</p>
-                </div>
+            <div class="summary-card">
+                <div class="summary-label">누적 클릭</div>
+                <div class="summary-value" id="totalClicks">0</div>
             </div>
         </div>
-    </div>
 
-    <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyCMy4vdbdLd26v8l2kGTsCW-IZaGklqwLs",
-            authDomain: "freestyle-db-becce.firebaseapp.com",
-            projectId: "freestyle-db-becce",
-            storageBucket: "freestyle-db-becce.firebasestorage.app",
-            messagingSenderId: "811035384445",
-            appId: "1:811035384445:web:490ffeb5f09cb763f0ef14",
-            measurementId: "G-FY7T44KY7D"
-        };
+        <div class="tab-menu">
+            <button class="tab-btn active"
+                    data-tab="manage"
+                    onclick="switchTab('manage')">
+                📦 상품 관리
+            </button>
 
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
+            <button class="tab-btn"
+                    data-tab="profile"
+                    onclick="switchTab('profile')">
+                ⚙️ 프로필
+            </button>
 
-        let allProductsData = {};
-        let currentLayout = 'list';
+            <button class="tab-btn"
+                    data-tab="analytics"
+                    onclick="switchTab('analytics')">
+                📊 통계
+            </button>
+        </div>
 
-        function switchTab(tabName) {
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+        <!-- 상품 관리 -->
+        <section id="tab-manage"
+                 class="tab-content active">
 
-            if (tabName === 'manage') {
-                document.querySelectorAll('.tab-btn')[0].classList.add('active');
-                document.getElementById('tab-manage').classList.add('active');
-            } else if (tabName === 'profile') {
-                document.querySelectorAll('.tab-btn')[1].classList.add('active');
-                document.getElementById('tab-profile').classList.add('active');
-            } else if (tabName === 'analytics') {
-                document.querySelectorAll('.tab-btn')[2].classList.add('active');
-                document.getElementById('tab-analytics').classList.add('active');
-            }
+            <h3 id="formModeTitle">➕ 그룹 상품 등록</h3>
+
+            <input type="hidden"
+                   id="editingGroupName">
+
+            <label class="field-label">
+                대표 문구 (그룹 제목)
+            </label>
+
+            <div class="group-title-row">
+                <input type="text"
+                       id="groupTitleInput"
+                       placeholder="예: 싱크대 청소 추천템 TOP 3"
+                       oninput="updateLivePreview()">
+
+                <div class="inline-color-picker">
+                    색상
+                    <input type="color"
+                           id="groupTextColor"
+                           value="#ed7295"
+                           onchange="updateLivePreview()">
+                </div>
+            </div>
+
+            <label class="field-label">
+                레이아웃 배치 선택
+            </label>
+
+            <div class="layout-selector" id="layoutSelector">
+                <label class="layout-option selected"
+                       id="layoutOpt_list"
+                       onclick="setLayout('list')">
+                    <input type="radio"
+                           name="layoutType"
+                           value="list" checked>
+                    기본 배치
+                </label>
+
+                <label class="layout-option"
+                       id="layoutOpt_col2"
+                       onclick="setLayout('col2')">
+                    <input type="radio"
+                           name="layoutType"
+                           value="col2">
+                    2열 배치
+                </label>
+
+                <label class="layout-option"
+                       id="layoutOpt_col3"
+                       onclick="setLayout('col3')">
+                    <input type="radio"
+                           name="layoutType"
+                           value="col3">
+                    3열 배치
+                </label>
+
+                <label class="layout-option"
+                       id="layoutOpt_carousel1"
+                       onclick="setLayout('carousel1')">
+                    <input type="radio"
+                           name="layoutType"
+                           value="carousel1">
+                    1캐러셀
+                </label>
+
+                <label class="layout-option"
+                       id="layoutOpt_carousel2"
+                       onclick="setLayout('carousel2')">
+                    <input type="radio"
+                           name="layoutType"
+                           value="carousel2">
+                    2캐러셀
+                </label>
+            </div>
+
+            <label class="field-label">
+                상품 링크 목록
+            </label>
+
+            <div id="productRowsContainer"></div>
+
+            <button class="btn-add-row"
+                    onclick="addProductRow()">
+                + 상품 추가
+            </button>
+
+            <button class="btn-action"
+                    id="submitBtn"
+                    onclick="saveGroupProducts()">
+                🚀 그룹 상품 등록하기
+            </button>
+
+            <button class="btn-action btn-cancel"
+                    id="cancelBtn"
+                    onclick="resetFormMode()"
+                    style="display:none;">
+                수정 취소
+            </button>
+
+            <hr class="divider">
+
+            <h3>📋 등록된 그룹 목록</h3>
+
+            <input type="search"
+                   id="searchInput"
+                   class="search-input"
+                   placeholder="그룹명 또는 상품명 검색..."
+                   oninput="renderLists()">
+
+            <div class="item-list" id="admin-list"></div>
+        </section>
+
+        <!-- 프로필 -->
+        <section id="tab-profile"
+                 class="tab-content">
+
+            <h3>👤 프로필 설정</h3>
+
+            <p class="help-text">
+                고객 페이지 상단에 표시되는 프로필
+                이미지를 변경할 수 있습니다.
+            </p>
+
+            <div class="profile-preview-box">
+                <img id="currentProfileView"
+                     class="current-profile-img"
+                     alt="현재 프로필">
+            </div>
+
+            <label class="field-label">
+                새 프로필 이미지
+            </label>
+
+            <div class="file-box">
+                <input type="file"
+                       id="profileFileInput"
+                       accept="image/*">
+            </div>
+
+            <button class="btn-profile"
+                    onclick="updateProfileImage()">
+                💾 프로필 이미지 저장
+            </button>
+        </section>
+
+        <!-- 통계 -->
+        <section id="tab-analytics"
+                 class="tab-content">
+
+            <h3>📊 인기 상품 클릭 순위</h3>
+
+            <p class="help-text">
+                상품별 누적 클릭 횟수를 기준으로 정렬합니다.
+            </p>
+
+            <div class="analytics-section"
+                 id="analytics-list">
+            </div>
+        </section>
+
+    </main>
+</div>
+
+<script>
+/* ========================================
+   Firebase 설정
+======================================== */
+
+const firebaseConfig = {
+    apiKey: "AIzaSyCMy4vdbdLd26v8l2kGTsCW-IZaGklqwLs",
+    authDomain: "freestyle-db-becce.firebaseapp.com",
+    projectId: "freestyle-db-becce",
+    storageBucket: "freestyle-db-becce.firebasestorage.app",
+    messagingSenderId: "811035384445",
+    appId: "1:811035384445:web:490ffeb5f09cb763f0ef14",
+    measurementId: "G-FY7T44KY7D"
+};
+
+firebase.initializeApp(firebaseConfig);
+
+const db = firebase.database();
+
+let allProductsData = {};
+let currentLayout = 'list';
+
+/* ========================================
+   유틸리티
+======================================== */
+
+function escapeHTML(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function isSafeImageSource(value) {
+    if (typeof value !== 'string') return false;
+
+    return /^https:\/\//i.test(value) ||
+        /^data:image\/(png|jpeg|jpg|webp|gif);base64,/i.test(value);
+}
+
+function safeImage(value) {
+    return isSafeImageSource(value) ? value : '';
+}
+
+function formatNumber(value) {
+    return Number(value || 0).toLocaleString('ko-KR');
+}
+
+function readFile(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(file);
+    });
+}
+
+/* ========================================
+   탭 관리
+======================================== */
+
+function switchTab(tabName) {
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.toggle(
+            'active',
+            btn.dataset.tab === tabName
+        );
+    });
+
+    document.querySelectorAll('.tab-content').forEach(panel => {
+        panel.classList.toggle(
+            'active',
+            panel.id === 'tab-' + tabName
+        );
+    });
+}
+
+/* ========================================
+   레이아웃 설정
+======================================== */
+
+function setLayout(type) {
+    const allowed = [
+        'list', 'col2', 'col3',
+        'carousel1', 'carousel2'
+    ];
+
+    if (!allowed.includes(type)) type = 'list';
+
+    currentLayout = type;
+
+    document.querySelectorAll('.layout-option').forEach(option => {
+        option.classList.remove('selected');
+    });
+
+    document.getElementById('layoutOpt_' + type)
+        .classList.add('selected');
+
+    document.querySelector(
+        'input[name="layoutType"][value="' + type + '"]'
+    ).checked = true;
+
+    updateLivePreview();
+}
+
+/* ========================================
+   실시간 미리보기
+======================================== */
+
+function updateLivePreview() {
+    const groupTitle =
+        document.getElementById('groupTitleInput').value.trim()
+        || '대표 문구를 입력하세요';
+
+    const groupColor =
+        document.getElementById('groupTextColor').value;
+
+    const titleEl =
+        document.getElementById('prevGroupTitle');
+
+    titleEl.textContent = groupTitle;
+    titleEl.style.color = groupColor;
+
+    const wrap =
+        document.getElementById('prevItemsWrap');
+
+    wrap.className = 'preview-items-wrap';
+
+    if (currentLayout.includes('carousel')) {
+        wrap.classList.add('carousel');
+    }
+
+    wrap.replaceChildren();
+
+    document.querySelectorAll('.product-input-card')
+        .forEach(card => {
+
+        const title =
+            card.querySelector('.row-title').value.trim()
+            || '상품명';
+
+        const color =
+            card.querySelector('.row-textcolor').value;
+
+        const image =
+            card.querySelector('.row-existing-image').value;
+
+        const isActive =
+            card.querySelector('.row-active').checked;
+
+        const item = document.createElement('div');
+        item.className =
+            'preview-item-card ' + currentLayout;
+
+        if (!isActive) {
+            item.style.opacity = '.45';
         }
 
-        function setLayout(type) {
-            currentLayout = type;
-            document.querySelectorAll('.layout-option').forEach(opt => opt.classList.remove('selected'));
-            document.getElementById('layoutOpt_' + type).classList.add('selected');
-            document.querySelector(`input[value="${type}"]`).checked = true;
-            updateLivePreview();
+        const img = document.createElement('img');
+        img.className = 'preview-item-img';
+        img.alt = '상품 미리보기';
+
+        if (safeImage(image)) {
+            img.src = image;
         }
 
-        window.onload = function() {
-            addProductRow();
-            updateLivePreview();
-        };
+        const text = document.createElement('div');
+        text.className = 'preview-item-text';
+        text.textContent = title;
+        text.style.color =
+            color.toLowerCase() === '#ffffff'
+            ? '#302d36' : color;
 
-        function updateLivePreview() {
-            const groupTitle = document.getElementById('groupTitleInput').value.trim() || '대표 문구를 입력하세요';
-            const groupColor = document.getElementById('groupTextColor').value;
+        item.appendChild(img);
+        item.appendChild(text);
+        wrap.appendChild(item);
+    });
+}
 
-            const titleEl = document.getElementById('prevGroupTitle');
-            titleEl.innerText = groupTitle;
-            titleEl.style.color = groupColor;
+/* ========================================
+   상품 입력 행 추가
+======================================== */
 
-            const wrap = document.getElementById('prevItemsWrap');
-            wrap.className = 'preview-items-wrap ' + (currentLayout.includes('carousel') ? 'carousel' : '');
-            wrap.innerHTML = '';
+function addProductRow(
+    titleVal = '',
+    linkVal = '',
+    imageVal = '',
+    textColorVal = '#302d36',
+    activeVal = true,
+    productId = ''
+) {
+    const container =
+        document.getElementById('productRowsContainer');
 
-            const cards = document.querySelectorAll('.product-input-card');
-            cards.forEach(card => {
-                const title = card.querySelector('.row-title').value.trim() || '상품명';
-                const textColor = card.querySelector('.row-textcolor').value;
-                const imgSrc = card.querySelector('.row-existing-image').value || '';
+    const card = document.createElement('div');
+    card.className = 'product-input-card';
+    card.draggable = true;
 
-                const itemCard = document.createElement('div');
-                let cardClass = '';
-                if (currentLayout === 'col2') cardClass = 'col2';
-                else if (currentLayout === 'col3') cardClass = 'col3';
-                else if (currentLayout === 'carousel1') cardClass = 'carousel1';
-                else if (currentLayout === 'carousel2') cardClass = 'carousel2';
+    // 기존 상품의 ID 보존
+    card.dataset.productId = productId;
 
-                itemCard.className = 'preview-item-card ' + cardClass;
-                itemCard.innerHTML = `
-                    <img src="${imgSrc || 'https://via.placeholder.com/60'}" class="preview-item-img" alt="미리보기">
-                    <div class="preview-item-text" style="color: ${textColor.toLowerCase() === '#ffffff' ? '#302b34' : textColor};">${title}</div>
-                `;
-                wrap.appendChild(itemCard);
-            });
+    card.innerHTML = `
+        <div class="drag-handle"
+             title="드래그하여 순서 변경">⋮⋮</div>
+
+        <div class="image-box">
+            <div class="image-drop-zone">
+                <span class="plus-icon">+</span>
+                <input type="file"
+                       class="row-file"
+                       accept="image/*"
+                       style="display:none;">
+                <img class="row-preview-img"
+                     alt="상품 이미지"
+                     style="display:none;">
+            </div>
+
+            <button type="button"
+                    class="btn-delete-img"
+                    style="display:none;">✕</button>
+        </div>
+
+        <input type="hidden"
+               class="row-existing-image">
+
+        <div class="card-fields">
+            <div class="title-input-row">
+                <input type="text"
+                       class="row-title"
+                       placeholder="상품명 입력">
+
+                <div class="inline-color-picker">
+                    색상
+                    <input type="color"
+                           class="row-textcolor"
+                           value="#302d36">
+                </div>
+            </div>
+
+            <input type="url"
+                   class="row-link"
+                   placeholder="https://link.coupang.com/...">
+        </div>
+
+        <div class="card-actions">
+            <label class="switch" title="게시 여부">
+                <input type="checkbox"
+                       class="row-active">
+                <span class="slider"></span>
+            </label>
+
+            <button type="button"
+                    class="btn-row-delete"
+                    title="상품 행 제거">🗑️</button>
+        </div>
+    `;
+
+    const titleInput = card.querySelector('.row-title');
+    const linkInput = card.querySelector('.row-link');
+    const colorInput = card.querySelector('.row-textcolor');
+    const activeInput = card.querySelector('.row-active');
+    const imageInput = card.querySelector('.row-existing-image');
+    const imagePreview = card.querySelector('.row-preview-img');
+    const fileInput = card.querySelector('.row-file');
+    const dropZone = card.querySelector('.image-drop-zone');
+    const plusIcon = card.querySelector('.plus-icon');
+    const deleteImageBtn = card.querySelector('.btn-delete-img');
+
+    titleInput.value = titleVal;
+    linkInput.value = linkVal;
+    colorInput.value =
+        /^#[0-9a-f]{6}$/i.test(textColorVal)
+        ? textColorVal : '#302d36';
+    activeInput.checked = activeVal;
+
+    function setImage(src) {
+        const safeSrc = safeImage(src);
+
+        imageInput.value = safeSrc;
+
+        if (safeSrc) {
+            imagePreview.src = safeSrc;
+            imagePreview.style.display = 'block';
+            plusIcon.style.display = 'none';
+            deleteImageBtn.style.display = 'block';
+        } else {
+            imagePreview.removeAttribute('src');
+            imagePreview.style.display = 'none';
+            plusIcon.style.display = 'block';
+            deleteImageBtn.style.display = 'none';
         }
 
-        function addProductRow(titleVal = '', linkVal = '', imageVal = '', textColorVal = '#302b34', activeVal = true) {
-            const container = document.getElementById('productRowsContainer');
-            const uniqueId = 'row_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
-            
-            const card = document.createElement('div');
-            card.className = 'product-input-card';
-            card.id = uniqueId;
-            card.draggable = true;
+        updateLivePreview();
+    }
 
-            card.innerHTML = `
-                <div class="drag-handle" title="순서 변경">⋮⋮</div>
-                
-                <div style="position: relative; flex-shrink: 0;">
-                    <div class="image-drop-zone" id="dropZone_${uniqueId}">
-                        <span class="plus-icon" id="dropIcon_${uniqueId}" style="${imageVal ? 'display:none;' : ''}">+</span>
-                        <input type="file" class="row-file" accept="image/*" style="display:none;" id="fileInput_${uniqueId}">
-                        <img id="previewImg_${uniqueId}" src="${imageVal || ''}" style="${imageVal ? '' : 'display:none;'}">
-                    </div>
-                    <button type="button" class="btn-delete-img" id="delImgBtn_${uniqueId}" style="${imageVal ? '' : 'display:none;'}" onclick="removeImage('${uniqueId}')">✕</button>
-                </div>
-                <input type="hidden" class="row-existing-image" id="existingImg_${uniqueId}" value="${imageVal}">
+    async function processFile(file) {
+        if (!file || !file.type.startsWith('image/')) {
+            alert('이미지 파일만 업로드할 수 있습니다.');
+            return;
+        }
 
-                <div class="card-fields">
-                    <div class="title-input-row">
-                        <input type="text" class="row-title" value="${titleVal}" placeholder="상품명 입력" oninput="updateLivePreview()">
-                        <div class="inline-color-picker" title="상품명 글자색">
-                            색상 <input type="color" class="row-textcolor" value="${textColorVal}" onchange="updateLivePreview()">
-                        </div>
-                    </div>
-                    <input type="text" class="row-link" value="${linkVal}" placeholder="https://link.coupang.com/...">
-                </div>
+        // 대용량 이미지는 Realtime DB 저장에 부담을 줄 수 있음
+        if (file.size > 800 * 1024) {
+            alert('800KB 이하 이미지 사용을 권장합니다. 이미지를 압축해주세요.');
+            return;
+        }
 
-                <div class="card-actions">
-                    <label class="switch" title="게시 여부">
-                        <input type="checkbox" class="row-active" ${activeVal ? 'checked' : ''}>
-                        <span class="slider"></span>
-                    </label>
-                    <button type="button" class="btn-row-delete" onclick="document.getElementById('${uniqueId}').remove(); updateLivePreview();" title="삭제">🗑️</button>
-                </div>
-            `;
-            container.appendChild(card);
+        try {
+            const encoded = await readFile(file);
+            setImage(encoded);
+        } catch (error) {
+            console.error(error);
+            alert('이미지를 읽지 못했습니다.');
+        }
+    }
+
+    dropZone.addEventListener('click', () => {
+        fileInput.click();
+    });
+
+    fileInput.addEventListener('change', async () => {
+        if (fileInput.files[0]) {
+            await processFile(fileInput.files[0]);
+        }
+    });
+
+    dropZone.addEventListener('dragover', event => {
+        event.preventDefault();
+        event.stopPropagation();
+        dropZone.classList.add('dragover');
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+        dropZone.classList.remove('dragover');
+    });
+
+    dropZone.addEventListener('drop', async event => {
+        event.preventDefault();
+        event.stopPropagation();
+        dropZone.classList.remove('dragover');
+
+        if (event.dataTransfer.files.length) {
+            await processFile(event.dataTransfer.files[0]);
+        }
+    });
+
+    deleteImageBtn.addEventListener('click', () => {
+        fileInput.value = '';
+        setImage('');
+    });
+
+    card.querySelector('.btn-row-delete')
+        .addEventListener('click', () => {
+            card.remove();
             updateLivePreview();
+        });
 
-            card.addEventListener('dragstart', () => card.classList.add('dragging'));
-            card.addEventListener('dragend', () => {
-                card.classList.remove('dragging');
-                updateLivePreview();
-            });
+    titleInput.addEventListener('input', updateLivePreview);
+    colorInput.addEventListener('input', updateLivePreview);
+    activeInput.addEventListener('change', updateLivePreview);
 
-            container.addEventListener('dragover', e => {
-                e.preventDefault();
-                const draggingCard = document.querySelector('.dragging');
-                const afterElement = getDragAfterElement(container, e.clientY);
-                if (afterElement == null) container.appendChild(draggingCard);
-                else container.insertBefore(draggingCard, afterElement);
-            });
+    card.addEventListener('dragstart', event => {
+        if (event.target.closest &&
+            event.target.closest('input')) {
+            event.preventDefault();
+            return;
+        }
+        card.classList.add('dragging');
+    });
 
-            const dropZone = document.getElementById(`dropZone_${uniqueId}`);
-            const fileInput = document.getElementById(`fileInput_${uniqueId}`);
-            const previewImg = document.getElementById(`previewImg_${uniqueId}`);
-            const dropIcon = document.getElementById(`dropIcon_${uniqueId}`);
-            const delImgBtn = document.getElementById(`delImgBtn_${uniqueId}`);
-            const existingImgInput = document.getElementById(`existingImg_${uniqueId}`);
+    card.addEventListener('dragend', () => {
+        card.classList.remove('dragging');
+        updateLivePreview();
+    });
 
-            dropZone.onclick = function(e) {
-                if (e.target !== delImgBtn) fileInput.click();
+    container.appendChild(card);
+
+    setImage(imageVal);
+}
+
+/* ========================================
+   상품 드래그 정렬
+======================================== */
+
+function getDragAfterElement(container, y) {
+    const elements = [
+        ...container.querySelectorAll(
+            '.product-input-card:not(.dragging)'
+        )
+    ];
+
+    return elements.reduce((closest, child) => {
+        const box = child.getBoundingClientRect();
+        const offset = y - box.top - box.height / 2;
+
+        if (offset < 0 && offset > closest.offset) {
+            return {
+                offset,
+                element: child
             };
+        }
 
-            fileInput.onchange = function(e) {
-                if (e.target.files.length > 0) processFile(e.target.files[0]);
-            };
+        return closest;
+    }, {
+        offset: Number.NEGATIVE_INFINITY
+    }).element;
+}
 
-            dropZone.ondragover = function(e) { e.preventDefault(); dropZone.classList.add('dragover'); };
-            dropZone.ondragleave = function() { dropZone.classList.remove('dragover'); };
-            dropZone.ondrop = function(e) {
-                e.preventDefault();
-                dropZone.classList.remove('dragover');
-                if (e.dataTransfer.files.length > 0) {
-                    fileInput.files = e.dataTransfer.files;
-                    processFile(e.dataTransfer.files[0]);
+document.getElementById('productRowsContainer')
+    .addEventListener('dragover', event => {
+
+        event.preventDefault();
+
+        const container =
+            document.getElementById('productRowsContainer');
+
+        const dragging =
+            container.querySelector('.dragging');
+
+        if (!dragging) return;
+
+        const after =
+            getDragAfterElement(container, event.clientY);
+
+        if (after) {
+            container.insertBefore(dragging, after);
+        } else {
+            container.appendChild(dragging);
+        }
+    });
+
+/* ========================================
+   상품 저장
+   기존 상품 ID와 클릭 수 보존
+======================================== */
+
+async function saveGroupProducts() {
+    const groupTitle =
+        document.getElementById('groupTitleInput')
+            .value.trim();
+
+    const groupColor =
+        document.getElementById('groupTextColor').value;
+
+    const editingGroupName =
+        document.getElementById('editingGroupName')
+            .value.trim();
+
+    const cards = [
+        ...document.querySelectorAll('.product-input-card')
+    ];
+
+    if (!groupTitle) {
+        alert('그룹 제목을 입력해주세요.');
+        return;
+    }
+
+    if (!cards.length) {
+        alert('상품을 최소 1개 추가해주세요.');
+        return;
+    }
+
+    const items = cards.map((card, index) => ({
+        id: card.dataset.productId || '',
+        group: groupTitle,
+        groupColor: groupColor,
+        productTextColor:
+            card.querySelector('.row-textcolor').value,
+        title:
+            card.querySelector('.row-title').value.trim(),
+        link:
+            card.querySelector('.row-link').value.trim(),
+        image:
+            card.querySelector('.row-existing-image').value,
+        active:
+            card.querySelector('.row-active').checked,
+        layout: currentLayout,
+        order: index
+    }));
+
+    if (items.some(item =>
+        !item.title || !item.link || !item.image
+    )) {
+        alert('모든 상품의 이름, 링크, 이미지를 입력해주세요.');
+        return;
+    }
+
+    if (items.some(item =>
+        !/^https?:\/\//i.test(item.link)
+    )) {
+        alert('상품 URL은 http 또는 https로 시작해야 합니다.');
+        return;
+    }
+
+    // 다른 그룹과 동일한 이름인지 확인
+    const duplicate = Object.values(allProductsData)
+        .some(item =>
+            item.group === groupTitle &&
+            item.group !== editingGroupName
+        );
+
+    if (duplicate) {
+        alert('동일한 그룹 제목이 이미 존재합니다.');
+        return;
+    }
+
+    const button = document.getElementById('submitBtn');
+    button.disabled = true;
+    button.textContent = '저장 중...';
+
+    try {
+        const updates = {};
+
+        const currentIds = new Set(
+            items.map(item => item.id).filter(Boolean)
+        );
+
+        // 편집 중 제거된 기존 상품만 삭제
+        if (editingGroupName) {
+            Object.entries(allProductsData).forEach(
+                ([id, item]) => {
+                    if (
+                        item.group === editingGroupName &&
+                        !currentIds.has(id)
+                    ) {
+                        updates['products/' + id] = null;
+                    }
                 }
-            };
-
-            function processFile(file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const base64Str = e.target.result;
-                    previewImg.src = base64Str;
-                    previewImg.style.display = 'block';
-                    dropIcon.style.display = 'none';
-                    delImgBtn.style.display = 'flex';
-                    existingImgInput.value = base64Str;
-                    updateLivePreview();
-                };
-                reader.readAsDataURL(file);
-            }
+            );
         }
 
-        function getDragAfterElement(container, y) {
-            const draggableElements = [...container.querySelectorAll('.product-input-card:not(.dragging)')];
-            return draggableElements.reduce((closest, child) => {
-                const box = child.getBoundingClientRect();
-                const offset = y - box.top - box.height / 2;
-                if (offset < 0 && offset > closest.offset) return { offset: offset, element: child };
-                else return closest;
-            }, { offset: Number.NEGATIVE_INFINITY }).element;
-        }
+        for (const item of items) {
+            const id = item.id && editingGroupName
+                ? item.id
+                : db.ref('products').push().key;
 
-        function removeImage(uniqueId) {
-            document.getElementById(`previewImg_${uniqueId}`).src = '';
-            document.getElementById(`previewImg_${uniqueId}`).style.display = 'none';
-            document.getElementById(`dropIcon_${uniqueId}`).style.display = 'block';
-            document.getElementById(`delImgBtn_${uniqueId}`).style.display = 'none';
-            document.getElementById(`existingImg_${uniqueId}`).value = '';
-            document.getElementById(`fileInput_${uniqueId}`).value = '';
-            updateLivePreview();
-        }
+            const oldProduct = allProductsData[id];
 
-        function saveGroupProducts() {
-            const groupTitle = document.getElementById('groupTitleInput').value.trim();
-            const groupColor = document.getElementById('groupTextColor').value;
-            const editingGroupName = document.getElementById('editingGroupName').value.trim();
+            const { id: ignoredId, ...record } = item;
 
-            if (!groupTitle) {
-                alert('대표 문구(그룹 제목)를 입력해주세요!');
-                return;
-            }
-
-            const cards = document.querySelectorAll('.product-input-card');
-            if (cards.length === 0) {
-                alert('등록할 상품을 최소 1개 이상 추가해주세요!');
-                return;
-            }
-
-            let hasError = false;
-            cards.forEach(card => {
-                const title = card.querySelector('.row-title').value.trim();
-                const link = card.querySelector('.row-link').value.trim();
-                const existingImg = card.querySelector('.row-existing-image').value;
-                if (!title || !link || !existingImg) hasError = true;
-            });
-
-            if (hasError) {
-                alert('모든 상품의 상품명, 링크, 이미지를 빠짐없이 입력해주세요!');
-                return;
-            }
-
-            if (editingGroupName) {
-                Object.keys(allProductsData).forEach(id => {
-                    if (allProductsData[id].group === editingGroupName) {
-                        db.ref('products/' + id).remove();
+            if (oldProduct) {
+                // 기존 레코드의 clicks는 건드리지 않음
+                Object.entries(record).forEach(
+                    ([field, value]) => {
+                        updates[
+                            'products/' + id + '/' + field
+                        ] = value;
                     }
-                });
-            }
-
-            let processedCount = 0;
-            cards.forEach((card, index) => {
-                const title = card.querySelector('.row-title').value.trim();
-                const link = card.querySelector('.row-link').value.trim();
-                const productTextColor = card.querySelector('.row-textcolor').value;
-                const imgBase64 = card.querySelector('.row-existing-image').value;
-                const isActive = card.querySelector('.row-active').checked;
-
-                db.ref('products').push({
-                    group: groupTitle,
-                    groupColor: groupColor,
-                    productTextColor: productTextColor,
-                    title: title,
-                    link: link,
-                    image: imgBase64,
-                    active: isActive,
-                    layout: currentLayout,
-                    order: index,
-                    clicks: 0
-                }, function(err) {
-                    processedCount++;
-                    if (processedCount === cards.length) {
-                        alert(editingGroupName ? '그룹이 성공적으로 수정되었습니다!' : '그룹 상품이 성공적으로 등록되었습니다!');
-                        resetFormMode();
-                    }
-                });
-            });
-        }
-
-        function editGroup(groupName) {
-            document.getElementById('editingGroupName').value = groupName;
-            document.getElementById('groupTitleInput').value = groupName;
-            document.getElementById('formModeTitle').innerText = '✏️ 그룹 수정 모드 (' + groupName + ')';
-            document.getElementById('submitBtn').innerText = '💾 수정 사항 저장하기';
-            document.getElementById('cancelBtn').style.display = 'block';
-
-            document.getElementById('productRowsContainer').innerHTML = '';
-
-            const groupItems = [];
-            Object.keys(allProductsData).forEach(id => {
-                const item = allProductsData[id];
-                if (item.group === groupName) groupItems.push(item);
-            });
-            groupItems.sort((a, b) => (a.order || 0) - (b.order || 0));
-
-            if (groupItems.length > 0) {
-                if (groupItems[0].layout) setLayout(groupItems[0].layout);
-                if (groupItems[0].groupColor) document.getElementById('groupTextColor').value = groupItems[0].groupColor;
-            }
-
-            groupItems.forEach(item => {
-                addProductRow(item.title, item.link, item.image, item.productTextColor || '#302b34', item.active !== false);
-            });
-
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-
-        function resetFormMode() {
-            document.getElementById('editingGroupName').value = '';
-            document.getElementById('groupTitleInput').value = '';
-            document.getElementById('formModeTitle').innerText = '➕ 그룹 상품 등록';
-            document.getElementById('submitBtn').innerText = '🚀 그룹 상품 한 번에 등록하기';
-            document.getElementById('cancelBtn').style.display = 'none';
-            document.getElementById('productRowsContainer').innerHTML = '';
-            setLayout('list');
-            document.getElementById('groupTextColor').value = '#ff4757';
-            addProductRow();
-        }
-
-        db.ref('settings/profileImg').on('value', function(snapshot) {
-            const url = snapshot.val();
-            const imgEl = document.getElementById('currentProfileView');
-            const prevProfile = document.getElementById('prevProfileImg');
-            if (url) {
-                imgEl.src = url;
-                prevProfile.src = url;
+                );
             } else {
-                imgEl.src = 'https://via.placeholder.com/90?text=🔥';
-                prevProfile.src = 'https://via.placeholder.com/45?text=🔥';
-            }
-        });
-
-        function updateProfileImage() {
-            const fileInput = document.getElementById('profileFileInput');
-            if (fileInput.files.length === 0) {
-                alert('변경할 프로필 이미지 파일을 선택해주세요!');
-                return;
-            }
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                db.ref('settings').set({ profileImg: e.target.result }, function(err) {
-                    if(err) alert('변경 실패: ' + err.message);
-                    else {
-                        alert('프로필 이미지가 성공적으로 변경되었습니다!');
-                        fileInput.value = '';
-                    }
-                });
-            };
-            reader.readAsDataURL(fileInput.files[0]);
-        }
-
-        db.ref('products').on('value', function(snapshot) {
-            allProductsData = snapshot.val() || {};
-            renderLists();
-        });
-
-        function renderLists() {
-            const listDiv = document.getElementById('admin-list');
-            const analyticsDiv = document.getElementById('analytics-list');
-            listDiv.innerHTML = '';
-            analyticsDiv.innerHTML = '';
-
-            if(!allProductsData || Object.keys(allProductsData).length === 0) {
-                listDiv.innerHTML = '<p style="font-size:12px; color:#888; text-align:center;">등록된 그룹이 없습니다.</p>';
-                analyticsDiv.innerHTML = '<p style="font-size:12px; color:#888; text-align:center;">집계된 데이터가 없습니다.</p>';
-                return;
-            }
-
-            const keyword = document.getElementById('searchInput').value.toLowerCase();
-            
-            const groupsMap = {};
-            Object.keys(allProductsData).reverse().forEach(function(id) {
-                const item = allProductsData[id];
-                if (item && item.group && !groupsMap[item.group]) {
-                    groupsMap[item.group] = item;
-                }
-            });
-
-            const groupKeys = Object.keys(groupsMap);
-            if (groupKeys.length === 0) {
-                listDiv.innerHTML = '<p style="font-size:12px; color:#888; text-align:center;">등록된 그룹이 없습니다.</p>';
-            }
-
-            groupKeys.forEach(function(groupName) {
-                const item = groupsMap[groupName];
-                if (keyword && !groupName.toLowerCase().includes(keyword)) return;
-
-                const div = document.createElement('div');
-                div.className = 'admin-item';
-                div.innerHTML = `
-                    <div class="admin-item-info">
-                        <img src="${item.image || 'https://via.placeholder.com/40'}" class="admin-thumb" alt="썸네일">
-                        <div><strong>📁 ${groupName}</strong></div>
-                    </div>
-                    <div class="admin-btn-group">
-                        <button class="btn-edit" onclick="editGroup('${groupName.replace(/'/g, "\\'")}')">그룹 수정</button>
-                        <button class="btn-del" onclick="deleteGroup('${groupName.replace(/'/g, "\\'")}')">그룹 삭제</button>
-                    </div>
-                `;
-                listDiv.appendChild(div);
-            });
-
-            const itemsArray = [];
-            Object.keys(allProductsData).forEach(function(id) {
-                const obj = allProductsData[id];
-                if (obj) {
-                    obj.id = id;
-                    itemsArray.push(obj);
-                }
-            });
-
-            itemsArray.sort((a, b) => (b.clicks || 0) - (a.clicks || 0));
-
-            itemsArray.forEach(function(item) {
-                const div = document.createElement('div');
-                div.className = 'analytics-item';
-                div.innerHTML = `
-                    <div style="display:flex; align-items:center; gap:8px;">
-                        <img src="${item.image || 'https://via.placeholder.com/35'}" style="width:35px; height:35px; border-radius:4px; object-fit:cover;" alt="썸네일">
-                        <div><strong>${item.title || ''}</strong> <span style="font-size:11px; color:#888;">(${item.group || ''})</span></div>
-                    </div>
-                    <span class="click-count">🖱️ ${item.clicks || 0}회</span>
-                `;
-                analyticsDiv.appendChild(div);
-            });
-        }
-
-        function filterAdminList() { renderLists(); }
-
-        function deleteGroup(groupName) {
-            if(confirm(`'${groupName}' 그룹에 속한 모든 상품을 삭제하시겠습니까?`)) {
-                Object.keys(allProductsData).forEach(id => {
-                    if (allProductsData[id].group === groupName) {
-                        db.ref('products/' + id).remove();
-                    }
-                });
+                updates['products/' + id] = {
+                    ...record,
+                    clicks: 0
+                };
             }
         }
-    </script>
+
+        await db.ref().update(updates);
+
+        alert(
+            editingGroupName
+            ? '그룹이 수정되었습니다. 클릭 통계는 유지됩니다.'
+            : '그룹 상품이 등록되었습니다.'
+        );
+
+        resetFormMode();
+
+    } catch (error) {
+        console.error('상품 저장 오류', error);
+        alert('상품 저장 실패: ' + error.message);
+    } finally {
+        button.disabled = false;
+        button.textContent =
+            document.getElementById('editingGroupName').value
+            ? '💾 수정 사항 저장하기'
+            : '🚀 그룹 상품 등록하기';
+    }
+}
+
+/* ========================================
+   그룹 수정
+======================================== */
+
+function editGroup(groupName) {
+    const groupItems =
+        Object.entries(allProductsData)
+            .filter(([id, item]) =>
+                item.group === groupName
+            )
+            .map(([id, item]) => ({
+                ...item,
+                id
+            }))
+            .sort((a, b) =>
+                (a.order || 0) - (b.order || 0)
+            );
+
+    if (!groupItems.length) {
+        alert('그룹을 찾을 수 없습니다.');
+        return;
+    }
+
+    switchTab('manage');
+
+    document.getElementById('editingGroupName').value =
+        groupName;
+
+    document.getElementById('groupTitleInput').value =
+        groupName;
+
+    document.getElementById('formModeTitle').textContent =
+        '✏️ 그룹 수정: ' + groupName;
+
+    document.getElementById('submitBtn').textContent =
+        '💾 수정 사항 저장하기';
+
+    document.getElementById('cancelBtn').style.display =
+        'block';
+
+    document.getElementById('productRowsContainer')
+        .replaceChildren();
+
+    document.getElementById('groupTextColor').value =
+        groupItems[0].groupColor || '#ed7295';
+
+    setLayout(groupItems[0].layout || 'list');
+
+    groupItems.forEach(item => {
+        addProductRow(
+            item.title || '',
+            item.link || '',
+            item.image || '',
+            item.productTextColor || '#302d36',
+            item.active !== false,
+            item.id
+        );
+    });
+
+    updateLivePreview();
+
+    window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+    });
+}
+
+/* ========================================
+   신규 등록 상태로 초기화
+======================================== */
+
+function resetFormMode() {
+    document.getElementById('editingGroupName').value = '';
+    document.getElementById('groupTitleInput').value = '';
+
+    document.getElementById('formModeTitle').textContent =
+        '➕ 그룹 상품 등록';
+
+    document.getElementById('submitBtn').textContent =
+        '🚀 그룹 상품 등록하기';
+
+    document.getElementById('cancelBtn').style.display =
+        'none';
+
+    document.getElementById('groupTextColor').value =
+        '#ed7295';
+
+    document.getElementById('productRowsContainer')
+        .replaceChildren();
+
+    setLayout('list');
+    addProductRow();
+    updateLivePreview();
+}
+
+/* ========================================
+   그룹 삭제
+======================================== */
+
+async function deleteGroup(groupName) {
+    if (!confirm(
+        "'" + groupName +
+        "' 그룹의 모든 상품을 삭제하시겠습니까?"
+    )) {
+        return;
+    }
+
+    const updates = {};
+
+    Object.entries(allProductsData).forEach(([id, item]) => {
+        if (item.group === groupName) {
+            updates['products/' + id] = null;
+        }
+    });
+
+    try {
+        await db.ref().update(updates);
+
+        alert('그룹이 삭제되었습니다.');
+
+        if (
+            document.getElementById('editingGroupName').value
+            === groupName
+        ) {
+            resetFormMode();
+        }
+
+    } catch (error) {
+        console.error(error);
+        alert('삭제 실패: ' + error.message);
+    }
+}
+
+/* ========================================
+   프로필 설정
+======================================== */
+
+db.ref('settings/profileImg').on('value', snapshot => {
+    const url = snapshot.val();
+    const image = safeImage(url);
+
+    const current =
+        document.getElementById('currentProfileView');
+
+    const preview =
+        document.getElementById('prevProfileImg');
+
+    if (image) {
+        current.src = image;
+        preview.src = image;
+    } else {
+        current.removeAttribute('src');
+        preview.removeAttribute('src');
+    }
+});
+
+async function updateProfileImage() {
+    const input =
+        document.getElementById('profileFileInput');
+
+    if (!input.files.length) {
+        alert('변경할 이미지를 선택해주세요.');
+        return;
+    }
+
+    const file = input.files[0];
+
+    if (!file.type.startsWith('image/')) {
+        alert('이미지 파일만 선택해주세요.');
+        return;
+    }
+
+    if (file.size > 800 * 1024) {
+        alert('800KB 이하 이미지를 사용해주세요.');
+        return;
+    }
+
+    try {
+        const data = await readFile(file);
+
+        // settings 전체를 덮지 않고 profileImg만 수정
+        await db.ref('settings/profileImg').set(data);
+
+        input.value = '';
+        alert('프로필 이미지가 변경되었습니다.');
+
+    } catch (error) {
+        console.error(error);
+        alert('프로필 저장 실패: ' + error.message);
+    }
+}
+
+/* ========================================
+   Firebase 상품 데이터 구독
+======================================== */
+
+db.ref('products').on('value', snapshot => {
+    allProductsData = snapshot.val() || {};
+    updateSummary();
+    renderLists();
+}, error => {
+    console.error('Firebase 읽기 오류', error);
+    alert('상품 데이터를 불러오지 못했습니다: ' + error.message);
+});
+
+/* ========================================
+   요약 통계
+======================================== */
+
+function updateSummary() {
+    const items = Object.values(allProductsData)
+        .filter(Boolean);
+
+    const groups = new Set(
+        items.map(item => item.group).filter(Boolean)
+    );
+
+    const activeCount =
+        items.filter(item => item.active !== false).length;
+
+    const clicks =
+        items.reduce(
+            (sum, item) => sum + Number(item.clicks || 0),
+            0
+        );
+
+    document.getElementById('totalGroups').textContent =
+        formatNumber(groups.size);
+
+    document.getElementById('activeProducts').textContent =
+        formatNumber(activeCount);
+
+    document.getElementById('totalClicks').textContent =
+        formatNumber(clicks);
+}
+
+/* ========================================
+   그룹 목록 및 검색
+======================================== */
+
+function renderLists() {
+    const listDiv = document.getElementById('admin-list');
+    const analyticsDiv =
+        document.getElementById('analytics-list');
+
+    const keyword =
+        document.getElementById('searchInput')
+            .value.trim().toLowerCase();
+
+    listDiv.replaceChildren();
+    analyticsDiv.replaceChildren();
+
+    const groups = new Map();
+    const items = [];
+
+    Object.entries(allProductsData).forEach(([id, item]) => {
+        if (!item) return;
+
+        const record = {
+            ...item,
+            id
+        };
+
+        items.push(record);
+
+        const name = item.group || '기타';
+
+        if (!groups.has(name)) {
+            groups.set(name, []);
+        }
+
+        groups.get(name).push(record);
+    });
+
+    let visibleGroups = 0;
+
+    [...groups.entries()].reverse().forEach(
+        ([groupName, groupItems]) => {
+
+            const matched =
+                groupName.toLowerCase().includes(keyword) ||
+                groupItems.some(item =>
+                    String(item.title || '')
+                        .toLowerCase().includes(keyword)
+                );
+
+            if (!matched) return;
+
+            visibleGroups++;
+
+            const first = groupItems[0];
+            const activeCount = groupItems.filter(item =>
+                item.active !== false
+            ).length;
+
+            const div = document.createElement('div');
+            div.className = 'admin-item';
+
+            const info = document.createElement('div');
+            info.className = 'admin-item-info';
+
+            const img = document.createElement('img');
+            img.className = 'admin-thumb';
+            img.alt = '상품 썸네일';
+
+            if (safeImage(first.image)) {
+                img.src = first.image;
+            }
+
+            const textBox = document.createElement('div');
+
+            const name = document.createElement('div');
+            name.className = 'item-name';
+            name.textContent = '📁 ' + groupName;
+
+            const meta = document.createElement('div');
+            meta.className = 'item-meta';
+            meta.textContent =
+                '상품 ' + groupItems.length +
+                '개 · 게시 ' + activeCount + '개';
+
+            textBox.appendChild(name);
+            textBox.appendChild(meta);
+
+            info.appendChild(img);
+            info.appendChild(textBox);
+
+            const actions = document.createElement('div');
+            actions.className = 'admin-btn-group';
+
+            const editBtn = document.createElement('button');
+            editBtn.className = 'btn-edit';
+            editBtn.textContent = '그룹 수정';
+            editBtn.onclick = () => editGroup(groupName);
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'btn-del';
+            deleteBtn.textContent = '그룹 삭제';
+            deleteBtn.onclick = () => deleteGroup(groupName);
+
+            actions.appendChild(editBtn);
+            actions.appendChild(deleteBtn);
+
+            div.appendChild(info);
+            div.appendChild(actions);
+            listDiv.appendChild(div);
+        }
+    );
+
+    if (!visibleGroups) {
+        listDiv.innerHTML =
+            '<div class="empty-text">검색된 그룹이 없습니다.</div>';
+    }
+
+    /* 클릭 순위 */
+    items.sort((a, b) =>
+        Number(b.clicks || 0) - Number(a.clicks || 0)
+    );
+
+    items.forEach((item, index) => {
+        const div = document.createElement('div');
+        div.className = 'analytics-item';
+
+        const info = document.createElement('div');
+        info.className = 'admin-item-info';
+
+        const img = document.createElement('img');
+        img.className = 'admin-thumb';
+        img.alt = '상품 이미지';
+
+        if (safeImage(item.image)) {
+            img.src = item.image;
+        }
+
+        const textBox = document.createElement('div');
+
+        const name = document.createElement('div');
+        name.className = 'item-name';
+        name.textContent =
+            (index + 1) + '위 · ' + (item.title || '상품명 없음');
+
+        const group = document.createElement('div');
+        group.className = 'item-meta';
+        group.textContent = item.group || '';
+
+        textBox.appendChild(name);
+        textBox.appendChild(group);
+
+        info.appendChild(img);
+        info.appendChild(textBox);
+
+        const count = document.createElement('span');
+        count.className = 'click-count';
+        count.textContent =
+            '🖱️ ' + formatNumber(item.clicks) + '회';
+
+        div.appendChild(info);
+        div.appendChild(count);
+
+        analyticsDiv.appendChild(div);
+    });
+
+    if (!items.length) {
+        analyticsDiv.innerHTML =
+            '<div class="empty-text">클릭 통계가 없습니다.</div>';
+    }
+}
+
+/* ========================================
+   초기 실행
+======================================== */
+
+window.addEventListener('load', () => {
+    addProductRow();
+    updateLivePreview();
+});
+
+</script>
 </body>
 </html>
