@@ -663,10 +663,18 @@ function createProductCard(item, layout) {
     card.target = '_blank';
     card.rel = 'noopener noreferrer';
 
-    const img = document.createElement('img');
-    img.className = 'item-img';
-    img.loading = 'lazy';
-    img.alt = '상품 이미지';
+    
+const img = document.createElement('img');
+
+img.className = 'item-img';
+img.alt = '상품 이미지';
+
+img.decoding = 'async';
+
+// 첫 번째로 표시되는 그룹의 이미지는 빠르게 표시
+// 실제 지연 로딩 여부는 브라우저가 판단
+img.loading = 'lazy';
+
 
     const src = safeImage(item.image);
 
@@ -737,11 +745,12 @@ function createGroup(group) {
 }
 
 /* 화면 출력 */
-function renderProducts() {
-    const filtered = getFilteredGroups();
-    const visible = filtered.slice(0, visibleCount);
 
-    contentList.replaceChildren();
+/* 화면 출력 */
+function renderProducts(appendOnly = false) {
+    const filtered = getFilteredGroups();
+
+    const visible = filtered.slice(0, visibleCount);
 
     document.getElementById('listHeading').textContent =
         searchKeyword ? '검색 결과' : '최신 추천 상품';
@@ -749,17 +758,35 @@ function renderProducts() {
     document.getElementById('listCount').textContent =
         `${filtered.length}개 그룹`;
 
-    if (!filtered.length) {
-        const empty = document.createElement('div');
-        empty.className = 'empty-state';
-        empty.textContent = searchKeyword
-            ? '검색 결과가 없습니다. 다른 검색어를 입력해 보세요.'
-            : '아직 등록된 상품이 없습니다.';
-        contentList.appendChild(empty);
+    let startIndex = 0;
+
+    if (appendOnly) {
+        startIndex = contentList.querySelectorAll(
+            ':scope > .group-container'
+        ).length;
     } else {
-        visible.forEach(group => {
-            contentList.appendChild(createGroup(group));
+        contentList.replaceChildren();
+    }
+
+    if (!filtered.length) {
+        if (!appendOnly) {
+            const empty = document.createElement('div');
+            empty.className = 'empty-state';
+
+            empty.textContent = searchKeyword
+                ? '검색 결과가 없습니다.'
+                : '아직 등록된 상품이 없습니다.';
+
+            contentList.appendChild(empty);
+        }
+    } else {
+        const fragment = document.createDocumentFragment();
+
+        visible.slice(startIndex).forEach(group => {
+            fragment.appendChild(createGroup(group));
         });
+
+        contentList.appendChild(fragment);
     }
 
     const remaining = filtered.length - visible.length;
@@ -772,11 +799,16 @@ function renderProducts() {
     }
 }
 
+
 /* 더 보기 */
+
 moreButton.addEventListener('click', () => {
     visibleCount += PAGE_SIZE;
-    renderProducts();
+
+    // 기존 목록은 유지하고 다음 그룹만 추가
+    renderProducts(true);
 });
+
 
 /* 검색 */
 searchInput.addEventListener('input', () => {
@@ -893,22 +925,147 @@ db.ref('settings/profileImg').on('value', snapshot => {
 
 
 /* 최초 등록 순서 메타데이터 */
+
+/* ========================================
+   추천상품 빠른 로딩 + 캐시
+======================================== */
+
+const PRODUCT_CACHE_KEY = 'freestyle_products_cache_v1';
+const PRODUCT_CACHE_LIMIT = 250 * 1024;
+
+let productsReceived = false;
+let orderReceived = false;
+let updateScheduled = false;
+
+/* 최초 등록 순서가 바뀌면 재정렬 */
+function refreshProductView() {
+    if (updateScheduled) return;
+
+    updateScheduled = true;
+
+    requestAnimationFrame(() => {
+        updateScheduled = false;
+
+        buildGroups();
+        renderProducts();
+    });
+}
+
+/* 캐시용 경량 데이터 만들기 */
+function makeLightProducts(data) {
+    const result = {};
+
+    for (const [id, item] of Object.entries(data || {})) {
+        if (!item || !item.group) continue;
+
+        result[id] = {
+            group: item.group,
+            title: item.title || '',
+            link: item.link || '',
+            order: item.order || 0,
+            layout: item.layout || 'list',
+            active: item.active !== false,
+            groupColor: item.groupColor || '',
+            productTextColor: item.productTextColor || '',
+            groupCreatedAt: item.groupCreatedAt || 0,
+
+            // Base64 이미지는 캐시에 저장하지 않음
+            image: typeof item.image === 'string' &&
+                   /^https:\/\//i.test(item.image)
+                ? item.image : ''
+        };
+    }
+
+    return result;
+}
+
+/* 캐시 저장 */
+function saveProductCache() {
+    try {
+        const cache = {
+            savedAt: Date.now(),
+            products: makeLightProducts(productsData),
+            order: groupOrderMeta
+        };
+
+        const json = JSON.stringify(cache);
+
+        if (json.length <= PRODUCT_CACHE_LIMIT) {
+            localStorage.setItem(PRODUCT_CACHE_KEY, json);
+        } else {
+            localStorage.removeItem(PRODUCT_CACHE_KEY);
+        }
+    } catch (error) {
+        console.warn('상품 캐시 저장 실패:', error);
+    }
+}
+
+/* 이전 방문 데이터 즉시 표시 */
+function loadProductCache() {
+    try {
+        const raw = localStorage.getItem(PRODUCT_CACHE_KEY);
+        if (!raw) return;
+
+        const cache = JSON.parse(raw);
+
+        // 24시간이 지난 캐시는 사용하지 않음
+        if (!cache.savedAt ||
+            Date.now() - cache.savedAt > 24 * 60 * 60 * 1000) {
+            localStorage.removeItem(PRODUCT_CACHE_KEY);
+            return;
+        }
+
+        if (!cache.products ||
+            typeof cache.products !== 'object') return;
+
+        productsData = cache.products;
+        groupOrderMeta = cache.order || {};
+
+        buildGroups();
+        renderProducts();
+
+        console.log('캐시된 추천상품 먼저 표시');
+
+    } catch (error) {
+        console.warn('상품 캐시 읽기 실패:', error);
+    }
+}
+
+/* 캐시된 상품을 먼저 보여줌 */
+loadProductCache();
+
+/* 그룹 순서 실시간 수신 */
 db.ref('groupOrder').on('value', snapshot => {
     groupOrderMeta = snapshot.val() || {};
-    buildGroups();
-    renderProducts();
+    orderReceived = true;
+
+    if (productsReceived) {
+        refreshProductView();
+        saveProductCache();
+    }
+}, error => {
+    console.warn('그룹 순서 수신 오류:', error);
 });
 
-/* 상품 실시간 구독 */
+/* 최신 상품 실시간 수신 */
 db.ref('products').on('value', snapshot => {
     productsData = snapshot.val() || {};
-    buildGroups();
-    renderProducts();
+    productsReceived = true;
+
+    refreshProductView();
+    saveProductCache();
+
+    console.log('Firebase 추천상품 최신 데이터 수신');
+
 }, error => {
-    console.error(error);
-    contentList.textContent =
-        '상품을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.';
+    console.error('Firebase 상품 수신 실패:', error);
+
+    if (!groupList.length) {
+        contentList.textContent =
+            '상품을 불러오지 못했습니다. 새로고침해 주세요.';
+    }
 });
+
 
 </script>
 </body>
