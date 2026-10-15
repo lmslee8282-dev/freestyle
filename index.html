@@ -802,50 +802,48 @@ clearButton.addEventListener('click', () => {
    프로필 이미지 빠른 표시 + 로컬 캐시
 ====================================== */
 
-const PROFILE_CACHE_KEY = 'freestyle_profile_cache_v1';
-const PROFILE_CACHE_MAX = 150 * 1024;
+
+/* ==========================================
+   프로필 이미지 캐시 및 빠른 표시
+========================================== */
+
+const PROFILE_CACHE_KEY = 'freestyle_profile_cache_v2';
+const PROFILE_CACHE_MAX = 600 * 1024;
 
 const profileContainer =
     document.getElementById('profile-container');
 
-let currentProfileSrc = '';
+let requestedProfileSrc = '';
+let profileRequestVersion = 0;
 
 function displayProfile(src) {
-    if (!src || src === currentProfileSrc) return;
+    if (!src || src === requestedProfileSrc) return;
+
+    requestedProfileSrc = src;
+    const version = ++profileRequestVersion;
 
     const image = new Image();
     image.className = 'profile-img';
     image.alt = 'FreeStyle 프로필 이미지';
 
-    // 이미지를 완전히 읽은 뒤 화면 교체
     image.onload = function () {
+        // 이전 이미지 요청이 늦게 끝나도 화면을 덮지 않음
+        if (version !== profileRequestVersion) return;
+
         profileContainer.replaceChildren(image);
-        currentProfileSrc = src;
     };
 
     image.onerror = function () {
+        if (version === profileRequestVersion) {
+            requestedProfileSrc = '';
+        }
         console.warn('프로필 이미지 표시 실패');
     };
 
     image.src = src;
 }
 
-function cacheProfile(src) {
-    try {
-        if (
-            typeof src === 'string' &&
-            src.length < PROFILE_CACHE_MAX
-        ) {
-            localStorage.setItem(PROFILE_CACHE_KEY, src);
-        } else {
-            localStorage.removeItem(PROFILE_CACHE_KEY);
-        }
-    } catch (error) {
-        console.warn('프로필 캐시 저장 불가:', error);
-    }
-}
-
-// 1. 재방문 시 저장된 이미지 먼저 표시
+// 저장된 프로필을 먼저 표시
 try {
     const cached = localStorage.getItem(PROFILE_CACHE_KEY);
 
@@ -853,32 +851,44 @@ try {
         displayProfile(cached);
     }
 } catch (error) {
-    console.warn('프로필 캐시 읽기 불가:', error);
+    console.warn('프로필 캐시 읽기 실패', error);
 }
 
-// 2. Firebase 최신 이미지와 동기화
+// Firebase 최신 프로필과 동기화
 db.ref('settings/profileImg').on('value', snapshot => {
     const src = safeImage(snapshot.val());
 
     if (!src) {
-        localStorage.removeItem(PROFILE_CACHE_KEY);
-        currentProfileSrc = '';
+        requestedProfileSrc = '';
+        ++profileRequestVersion;
 
-        const placeholder = document.createElement('div');
-        placeholder.className = 'profile-img';
-        placeholder.textContent = '🔥';
+        const fallback = document.createElement('div');
+        fallback.className = 'profile-img';
+        fallback.textContent = '🔥';
 
-        profileContainer.replaceChildren(placeholder);
+        profileContainer.replaceChildren(fallback);
+
+        try {
+            localStorage.removeItem(PROFILE_CACHE_KEY);
+        } catch (error) {}
+
         return;
     }
 
-    if (src !== currentProfileSrc) {
-        displayProfile(src);
+    displayProfile(src);
+
+    try {
+        if (src.length < PROFILE_CACHE_MAX) {
+            localStorage.setItem(PROFILE_CACHE_KEY, src);
+        } else {
+            localStorage.removeItem(PROFILE_CACHE_KEY);
+        }
+    } catch (error) {
+        console.warn('프로필 캐시 저장 실패', error);
     }
 
-    cacheProfile(src);
 }, error => {
-    console.warn('프로필 정보 수신 실패:', error);
+    console.warn('프로필 데이터 읽기 실패', error);
 });
 
 
