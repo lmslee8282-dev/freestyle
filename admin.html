@@ -113,6 +113,61 @@
 
         .analytics-item { display: flex; justify-content: space-between; align-items: center; background: #fff8f8; padding: 10px; border-radius: 6px; margin-bottom: 8px; border: 1px solid #ffdede; font-size: 13px; }
         .click-count { font-weight: bold; color: #ff4757; background: rgba(255,71,87,0.1); padding: 3px 8px; border-radius: 12px; }
+
+        /* Modern pastel admin skin; structural IDs and handlers stay unchanged */
+        :root { --rose:#eb6488; --rose-pale:#fff0f4; --ink:#302b34; --muted:#8c8190; --line:#efe5eb; --surface:#fff; }
+        * { font-family:'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif; }
+        body { background:linear-gradient(135deg,#fcf4f6,#f6f4f8); color:var(--ink); padding:32px 20px; margin:0; min-height:100vh; }
+        .admin-wrapper { max-width:1180px; gap:26px; align-items:flex-start; }
+        .preview-pane { width:310px; flex:0 0 310px; border:7px solid #302f38; background:#302f38; padding:9px; border-radius:34px; top:24px; box-shadow:0 18px 35px #6d506126; }
+        .preview-screen { background:linear-gradient(#fff8f8,#f6e7e9); color:#302b34; border-radius:22px; height:630px; padding:20px 12px; }
+        .preview-profile { height:70px; width:70px; border:3px solid white; box-shadow:0 3px 10px #875e6b20; }
+        .preview-title { font-size:16px; color:var(--ink); }
+        .preview-group-box { background:transparent; border:0; padding:2px; margin-top:17px; }
+        .preview-group-title { color:var(--rose); border:0; padding:6px 0; font-size:12px; }
+        .preview-item-card { background:white; border:1px solid #f1e7e9; box-shadow:0 2px 8px #73485712; border-radius:10px; padding:9px; color:var(--ink); }
+        .preview-item-img { height:55px; border-radius:7px; background:#f5edef; }
+        .preview-item-text { font-size:10px; color:var(--ink); }
+        .admin-box { max-width:800px; border-radius:23px; padding:30px; box-shadow:0 14px 50px #6a506315; border:1px solid #f6edf1; margin-bottom:28px; }
+        h2 { text-align:left; font-size:23px; letter-spacing:-.7px; margin:0 0 23px; color:var(--ink); }
+        h3 { color:var(--ink); font-size:17px; text-align:left; letter-spacing:-.4px; margin:20px 0 18px; }
+        label { color:#665d68; font-size:12px; }
+        input,select,button { border:1px solid #e9e1e7; padding:12px; border-radius:11px; background:#fff; color:var(--ink); transition:border-color .2s,box-shadow .2s; }
+        input:focus,select:focus { outline:0; border-color:#e99ab0; box-shadow:0 0 0 3px #ffe9ef; }
+        input[type=color] { box-shadow:none; }
+        .tab-menu { gap:8px; padding:5px; background:#faf5f7; border-radius:14px; margin-bottom:22px; }
+        .tab-btn { background:transparent; color:#746671; border-radius:10px; margin:0; font-size:12px; padding:12px 6px; }
+        .tab-btn.active { color:#d7466f; background:white; box-shadow:0 3px 11px #a96c861c; }
+        .layout-selector { gap:8px; }
+        .layout-option { border-radius:11px; padding:12px 4px; font-size:11px; border:1px solid #eee2e8; background:#fcfafb; }
+        .layout-option.selected { border:1.5px solid var(--rose); background:var(--rose-pale); color:#d7466f; }
+        .inline-color-picker { height:45px; border-radius:10px; border-color:var(--line); background:#fcf8f9; }
+        .product-input-card { border-radius:14px; padding:13px; gap:11px; box-shadow:0 4px 16px #8666780a; border-color:var(--line); }
+        .product-input-card.dragging { background:#fce4eb; }
+        .image-drop-zone { border-color:#e5bdcb; background:#fff9fb; border-radius:10px; }
+        .image-drop-zone.dragover { background:#ffe5ed; border-color:var(--rose); }
+        .card-fields { min-width:0; }
+        .card-fields input { min-width:0; }
+        .btn-add-row { background:#fff0f4; color:#cd4970; border:1px dashed #e7a5b8; border-radius:12px; padding:14px; }
+        .btn-add-row:hover { background:#ffe7ee; }
+        button.btn-action { background:linear-gradient(110deg,#ee6c90,#de537e); box-shadow:0 6px 16px #e25c802e; border-radius:12px; padding:14px; }
+        button.btn-action:hover { background:#d94a71; }
+        button.btn-profile { background:#3e3441; border-radius:12px; padding:14px; }
+        button.btn-cancel { background:#f2eef1; color:#655c65; box-shadow:none; }
+        .search-input { margin-bottom:16px; }
+        .item-list,.analytics-section { max-height:510px; }
+        .admin-item { background:#fff; padding:12px; border:1px solid var(--line); border-radius:12px; gap:8px; }
+        .admin-thumb { border-radius:9px; width:47px; height:47px; }
+        .btn-edit,.btn-del { width:auto; padding:9px 11px; margin:0; border-radius:8px; font-size:11px; }
+        .btn-edit { background:#f9e4ec; color:#c1436a; }
+        .btn-del { background:#f1edf0; color:#635b64; }
+        .analytics-item { border:1px solid var(--line); border-radius:11px; background:#fffafa; gap:10px; }
+        .click-count { color:#bf4168; background:#fde6ed; flex-shrink:0; }
+        .file-box { border-radius:12px; border-color:var(--line); background:#fffbfc; }
+        .current-profile-img { border:4px solid #fff; box-shadow:0 3px 14px #0001; }
+        input:checked + .slider { background-color:#e87297; }
+        @media(max-width:850px) { body{padding:16px 10px;} .admin-wrapper{ flex-direction:column; align-items:stretch; } .preview-pane{ width:100%; max-width:370px; flex:auto; position:static; margin:0 auto; } .admin-box{ max-width:none; padding:20px 15px; } }
+        @media(max-width:470px) { .layout-selector{grid-template-columns:repeat(3,1fr);} .product-input-card{flex-wrap:wrap;} .card-fields{flex:1 1 150px;} .card-actions{height:70px;} .admin-item{flex-wrap:wrap;} .admin-btn-group{margin-left:auto;} .tab-btn{font-size:11px;} }
     </style>
 </head>
 <body>
@@ -126,7 +181,7 @@
                 <div style="font-size:9px; color:#888; text-align:center; margin-bottom:10px;">쇼츠 속 꿀템 모음</div>
                 
                 <div class="preview-group-box">
-                    <div class="preview-group-title" id="prevGroupTitle" style="color: #ff4757;">대표 문구를 입력하세요</div>
+                    <div class="preview-group-title" id="prevGroupTitle" style="color: #df6184;">대표 문구를 입력하세요</div>
                     <div class="preview-items-wrap" id="prevItemsWrap"></div>
                 </div>
             </div>
@@ -293,13 +348,13 @@
                 itemCard.className = 'preview-item-card ' + cardClass;
                 itemCard.innerHTML = `
                     <img src="${imgSrc || 'https://via.placeholder.com/60'}" class="preview-item-img" alt="미리보기">
-                    <div class="preview-item-text" style="color: ${textColor};">${title}</div>
+                    <div class="preview-item-text" style="color: ${textColor.toLowerCase() === '#ffffff' ? '#302b34' : textColor};">${title}</div>
                 `;
                 wrap.appendChild(itemCard);
             });
         }
 
-        function addProductRow(titleVal = '', linkVal = '', imageVal = '', textColorVal = '#ffffff', activeVal = true) {
+        function addProductRow(titleVal = '', linkVal = '', imageVal = '', textColorVal = '#302b34', activeVal = true) {
             const container = document.getElementById('productRowsContainer');
             const uniqueId = 'row_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
             
@@ -505,7 +560,7 @@
             }
 
             groupItems.forEach(item => {
-                addProductRow(item.title, item.link, item.image, item.productTextColor || '#ffffff', item.active !== false);
+                addProductRow(item.title, item.link, item.image, item.productTextColor || '#302b34', item.active !== false);
             });
 
             window.scrollTo({ top: 0, behavior: 'smooth' });
