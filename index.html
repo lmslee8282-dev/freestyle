@@ -798,8 +798,6 @@ clearButton.addEventListener('click', () => {
     searchInput.focus();
 });
 
-/* 프로필 실시간 구독 */
-db.ref('settings/profileImg').on(
 /* ======================================
    프로필 이미지 빠른 표시 + 로컬 캐시
 ====================================== */
@@ -882,7 +880,7 @@ db.ref('settings/profileImg').on('value', snapshot => {
 }, error => {
     console.warn('프로필 정보 수신 실패:', error);
 });
-);
+
 
 /* 최초 등록 순서 메타데이터 */
 db.ref('groupOrder').on('value', snapshot => {
