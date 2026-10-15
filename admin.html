@@ -870,6 +870,105 @@ input[type=color] {
     cursor: pointer;
 }
 
+/* ===== 고객 페이지 실시간 목록 ===== */
+
+.customer-list-panel {
+    margin-top: 18px;
+    padding: 15px;
+    border: 1px solid #eee0e5;
+    border-radius: 18px;
+    background: #fff;
+}
+
+.customer-list-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.customer-list-heading strong {
+    font-size: 13px;
+    color: #34313b;
+}
+
+.customer-list-count {
+    font-size: 11px;
+    color: #9a8991;
+}
+
+.customer-list-scroll {
+    max-height: 420px;
+    overflow-y: auto;
+    padding-right: 3px;
+}
+
+.customer-group {
+    margin-bottom: 15px;
+}
+
+.customer-group-title {
+    margin-bottom: 8px;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.customer-product {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 8px;
+    margin-bottom: 6px;
+    border: 1px solid #f2e8eb;
+    border-radius: 10px;
+    background: #fff9fa;
+    color: #302d36;
+    text-decoration: none;
+}
+
+.customer-product img {
+    width: 42px;
+    height: 42px;
+    flex-shrink: 0;
+    border-radius: 7px;
+    object-fit: cover;
+    background: #f2edf0;
+}
+
+.customer-product span {
+    flex: 1;
+    min-width: 0;
+    font-size: 11px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.customer-product:hover {
+    background: #fff0f4;
+}
+
+.customer-list-more {
+    width: 100%;
+    padding: 10px;
+    margin-top: 5px;
+    border: 1px solid #edc5d0;
+    border-radius: 10px;
+    background: #fff0f4;
+    color: #ce5579;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.customer-list-empty {
+    padding: 20px 5px;
+    text-align: center;
+    font-size: 12px;
+    color: #9a8991;
+}
+
 </style>
 </head>
 
@@ -2764,5 +2863,334 @@ if (document.readyState === 'loading') {
 }
 
 </script>
+    
+<script>
+/* ===========================================
+   FreeStyle 관리자 목록 확장
+   1. 실제 고객 페이지 목록 미리보기
+   2. 최초 등록 기준 최신순 표시
+=========================================== */
+
+(function () {
+    const PAGE_SIZE = 10;
+    let visibleGroups = PAGE_SIZE;
+
+    function getPushTime(id) {
+        const chars =
+            '-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz';
+
+        if (!id || id.length < 20) return 0;
+
+        let time = 0;
+
+        for (let i = 0; i < 8; i++) {
+            const n = chars.indexOf(id[i]);
+            if (n < 0) return 0;
+            time = time * 64 + n;
+        }
+
+        return Number.isSafeInteger(time) ? time : 0;
+    }
+
+    function getGroups() {
+        const groups = new Map();
+
+        Object.entries(allProductsData || {}).forEach(
+            ([id, item]) => {
+                if (!item || !item.group) return;
+
+                if (!groups.has(item.group)) {
+                    groups.set(item.group, {
+                        name: item.group,
+                        items: [],
+                        createdAt: Infinity,
+                        firstKey: id
+                    });
+                }
+
+                const group = groups.get(item.group);
+
+                const time =
+                    Number(item.groupCreatedAt) ||
+                    Number(item.createdAt) ||
+                    getPushTime(id);
+
+                if (time > 0) {
+                    group.createdAt =
+                        Math.min(group.createdAt, time);
+                }
+
+                if (id < group.firstKey) {
+                    group.firstKey = id;
+                }
+
+                if (item.active !== false) {
+                    group.items.push({ ...item, id });
+                }
+            }
+        );
+
+        return [...groups.values()]
+            .filter(g => g.items.length > 0)
+            .map(g => {
+                g.items.sort((a, b) =>
+                    (Number(a.order) || 0) -
+                    (Number(b.order) || 0)
+                );
+
+                if (!Number.isFinite(g.createdAt)) {
+                    g.createdAt = 0;
+                }
+
+                return g;
+            })
+            .sort((a, b) =>
+                b.createdAt - a.createdAt ||
+                b.firstKey.localeCompare(a.firstKey)
+            );
+    }
+
+    function createPanel() {
+        const pane = document.querySelector('.preview-pane');
+        if (!pane) return null;
+
+        let panel = document.getElementById(
+            'customerLivePanel'
+        );
+
+        if (panel) return panel;
+
+        panel = document.createElement('div');
+        panel.id = 'customerLivePanel';
+        panel.className = 'customer-list-panel';
+
+        panel.innerHTML = `
+            <div class="customer-list-heading">
+                <strong>🛍️ 고객 페이지 실제 목록</strong>
+                <span class="customer-list-count"
+                      id="customerGroupCount"></span>
+            </div>
+
+            <div class="customer-list-scroll"
+                 id="customerLiveList"></div>
+
+            <button type="button"
+                    id="customerMoreBtn"
+                    class="customer-list-more"
+                    hidden>
+                이전 그룹 더 보기 ↓
+            </button>
+        `;
+
+        pane.appendChild(panel);
+
+        panel.querySelector('#customerMoreBtn')
+            .addEventListener('click', () => {
+                visibleGroups += PAGE_SIZE;
+                renderCustomerPreview();
+            });
+
+        return panel;
+    }
+
+    function renderCustomerPreview() {
+        const panel = createPanel();
+        if (!panel) return;
+
+        const list = document.getElementById(
+            'customerLiveList'
+        );
+
+        const groups = getGroups();
+        const visible = groups.slice(0, visibleGroups);
+
+        document.getElementById(
+            'customerGroupCount'
+        ).textContent = `${groups.length}개 그룹`;
+
+        list.replaceChildren();
+
+        if (!groups.length) {
+            const empty = document.createElement('div');
+            empty.className = 'customer-list-empty';
+            empty.textContent = '게시된 상품이 없습니다.';
+            list.appendChild(empty);
+        }
+
+        visible.forEach(group => {
+            const box = document.createElement('div');
+            box.className = 'customer-group';
+
+            const title = document.createElement('div');
+            title.className = 'customer-group-title';
+            title.textContent = group.name;
+
+            const color = group.items[0]?.groupColor;
+
+            if (/^#[0-9a-f]{6}$/i.test(color || '')) {
+                title.style.color = color;
+            }
+
+            box.appendChild(title);
+
+            group.items.forEach(item => {
+                const card = document.createElement('a');
+                card.className = 'customer-product';
+
+                // 미리보기에서는 클릭 통계를 기록하지 않음
+                let safeUrl = '';
+
+                try {
+                    const url = new URL(item.link);
+
+                    if (url.protocol === 'https:' ||
+                        url.protocol === 'http:') {
+                        safeUrl = url.href;
+                    }
+                } catch (e) {}
+
+                if (safeUrl) {
+                    card.href = safeUrl;
+                    card.target = '_blank';
+                    card.rel = 'noopener noreferrer';
+                }
+
+                const image = document.createElement('img');
+                image.alt = '상품 이미지';
+                image.loading = 'lazy';
+
+                if (typeof item.image === 'string' &&
+                    (/^https:\/\//i.test(item.image) ||
+                     /^data:image\/(png|jpeg|webp|gif);base64,/i
+                        .test(item.image))) {
+                    image.src = item.image;
+                }
+
+                const name = document.createElement('span');
+                name.textContent = item.title || '상품명 없음';
+
+                const textColor = item.productTextColor;
+
+                if (/^#[0-9a-f]{6}$/i.test(textColor || '') &&
+                    textColor.toLowerCase() !== '#ffffff') {
+                    name.style.color = textColor;
+                }
+
+                card.appendChild(image);
+                card.appendChild(name);
+                box.appendChild(card);
+            });
+
+            list.appendChild(box);
+        });
+
+        const more = document.getElementById(
+            'customerMoreBtn'
+        );
+
+        const remaining = groups.length - visible.length;
+
+        more.hidden = remaining <= 0;
+
+        if (remaining > 0) {
+            more.textContent =
+                `이전 그룹 더 보기 ↓ (${remaining}개 남음)`;
+        }
+    }
+
+    /* 등록된 그룹 목록 최신순 정렬 */
+    function sortAdminGroupList() {
+        const list = document.getElementById('admin-list');
+        if (!list) return;
+
+        const groups = getGroups();
+
+        // 게시 중지 그룹도 관리자 목록에서 정렬
+        const orderMap = new Map(
+            groups.map((g, i) => [g.name, i])
+        );
+
+        const allGroupTimes = new Map();
+
+        Object.entries(allProductsData || {}).forEach(
+            ([id, item]) => {
+                if (!item?.group) return;
+
+                const time =
+                    Number(item.groupCreatedAt) ||
+                    Number(item.createdAt) ||
+                    getPushTime(id);
+
+                const old = allGroupTimes.get(item.group);
+
+                if (old === undefined || time < old) {
+                    allGroupTimes.set(item.group, time);
+                }
+            }
+        );
+
+        const rows = [...list.children].filter(
+            el => el.classList.contains('admin-item')
+        );
+
+        const getGroupName = row => {
+            const el = row.querySelector(
+                '.admin-item-info .item-name, ' +
+                '.admin-item-info strong'
+            );
+
+            return (el?.textContent || '')
+                .replace(/^[📁📂\s]+/u, '')
+                .trim();
+        };
+
+        rows.sort((a, b) => {
+            const nameA = getGroupName(a);
+            const nameB = getGroupName(b);
+
+            const timeA = allGroupTimes.get(nameA) || 0;
+            const timeB = allGroupTimes.get(nameB) || 0;
+
+            return timeB - timeA;
+        });
+
+        rows.forEach(row => list.appendChild(row));
+    }
+
+    function refreshExtraViews() {
+        renderCustomerPreview();
+        sortAdminGroupList();
+    }
+
+    // 기존 renderLists 이후 추가 뷰 갱신
+    if (typeof renderLists === 'function') {
+        const originalRenderLists = renderLists;
+
+        renderLists = function (...args) {
+            const result = originalRenderLists.apply(this, args);
+            refreshExtraViews();
+            return result;
+        };
+    }
+
+    // Firebase 수신 이후에도 최신 데이터 반영
+    if (typeof db !== 'undefined') {
+        db.ref('products').on('value', () => {
+            // 기존 데이터 리스너가 먼저 실행되도록 지연
+            setTimeout(refreshExtraViews, 0);
+        });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener(
+            'DOMContentLoaded',
+            refreshExtraViews
+        );
+    } else {
+        refreshExtraViews();
+    }
+})();
+</script>
+
 </body>
 </html>
