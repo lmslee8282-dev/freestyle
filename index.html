@@ -1,508 +1,818 @@
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FreeStyle 꿀템 저장소</title>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Apple SD Gothic Neo', sans-serif; }
-        body { background-color: #121212; color: #fff; display: flex; justify-content: center; padding: 20px; min-height: 100vh; }
-        .container { width: 100%; max-width: 480px; text-align: center; }
-        
-        .profile-img { 
-            width: 90px; height: 90px; border-radius: 50%; background: #2a2a2a; 
-            margin: 0 auto 12px; display: flex; align-items: center; justify-content: center; 
-            font-size: 32px; border: 2px solid #444; object-fit: cover; 
-        }
-        h1 { font-size: 20px; margin-bottom: 5px; }
-        p.sub { font-size: 13px; color: #888; margin-bottom: 25px; }
-        
-        .group-container { margin-bottom: 25px; text-align: left; }
-        .group-title { font-size: 15px; font-weight: bold; color: #ff4757; margin-bottom: 10px; border-bottom: 1px solid #333; padding-bottom: 6px; }
-        
-        /* 📦 레이아웃별 스타일 클래스 */
-        .items-wrap { display: flex; gap: 8px; flex-wrap: wrap; }
-        .items-wrap.carousel { display: flex; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 6px; }
-        .items-wrap.carousel::-webkit-scrollbar { height: 4px; }
-        .items-wrap.carousel::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FreeStyle 꿀템 저장소</title>
 
-        .item-card { 
-            background: #1e1e1e; border-radius: 10px; padding: 10px; display: flex; align-items: center; gap: 12px; 
-            border: 1px solid #333; text-decoration: none; color: #fff; transition: 0.2s; cursor: pointer; width: 100%; 
-        }
-        .item-card:hover { transform: translateY(-2px); border-color: #ff4757; }
-        
-        /* 2열 배치 (col2) */
-        .item-card.col2 { width: calc(50% - 4px); flex-direction: column; text-align: center; gap: 6px; padding: 8px; }
-        .item-card.col2 .item-img { width: 100%; height: 90px; }
-        
-        /* 3열 배치 (col3) */
-        .item-card.col3 { width: calc(33.333% - 5px); flex-direction: column; text-align: center; gap: 4px; padding: 6px; }
-        .item-card.col3 .item-img { width: 100%; height: 70px; }
-        .item-card.col3 .item-title { font-size: 11px; -webkit-line-clamp: 1; }
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
-        /* 1캐러셀 (carousel1) */
-        .item-card.carousel1 { width: 75%; flex-shrink: 0; flex-direction: column; text-align: center; }
-        .item-card.carousel1 .item-img { width: 100%; height: 120px; }
-
-        /* 2캐러셀 (carousel2) */
-        .item-card.carousel2 { width: 50%; flex-shrink: 0; flex-direction: column; text-align: center; }
-        .item-card.carousel2 .item-img { width: 100%; height: 90px; }
-
-        .item-img { width: 55px; height: 55px; border-radius: 8px; object-fit: cover; background: #333; flex-shrink: 0; }
-        .item-info { flex-grow: 1; overflow: hidden; text-align: left; }
-        .item-card.col2 .item-info, .item-card.col3 .item-info, .item-card.carousel1 .item-info, .item-card.carousel2 .item-info { text-align: center; width: 100%; }
-        
-        .item-title { font-size: 13px; font-weight: 600; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis; }
-        
-        .footer { margin-top: 40px; font-size: 11px; color: #555; }
-
-        /* 2026 soft editorial redesign — existing Firebase logic/layouts preserved */
-        :root { --rose:#ed7294; --rose-deep:#d94f77; --ink:#2d2930; --muted:#90838a; --paper:#fff; --line:#f2e4e7; --blush:#fff4f5; }
-        * { font-family:'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif; }
-        html { scroll-behavior:smooth; }
-        body { background:linear-gradient(165deg,#fff9f8 0%,#f9eceb 58%,#fff7f4 100%); color:var(--ink); padding:0 16px 55px; display:block; }
-        .container { max-width:510px; margin:0 auto; text-align:center; }
-        #profile-container { padding-top:53px; }
-        .profile-img { width:105px; height:105px; border-radius:50%; background:#fce5e9; border:4px solid white; box-shadow:0 6px 24px #b57e8924; margin-bottom:17px; color:var(--rose); }
-        h1 { font-size:23px; font-weight:800; letter-spacing:-.6px; margin-bottom:7px; }
-        p.sub { color:#9c8991; font-size:13px; margin-bottom:29px; line-height:1.65; }
-        .top-accent { width:42px; height:4px; border-radius:5px; background:#e9a5b6; margin:0 auto 31px; }
-        #content-list { text-align:left; }
-        .group-container { margin-bottom:27px; }
-        .group-title { font-size:13px; font-weight:750; letter-spacing:-.2px; color:#c96684; padding:0 3px 12px; border-bottom:none; margin-bottom:4px; }
-        .items-wrap { gap:10px; }
-        .item-card { background:#fff; color:var(--ink); border:1px solid #f6eeee; border-radius:16px; padding:13px; min-height:75px; gap:13px; box-shadow:0 4px 16px #8c61670d; transition:transform .2s,box-shadow .2s,border-color .2s; }
-        .item-card:hover { transform:translateY(-2px); border-color:#edb8c5; box-shadow:0 9px 24px #aa68751a; }
-        .item-card:active { transform:scale(.985); }
-        .item-img { width:58px; height:58px; border-radius:11px; background:#f8eeee; }
-        .item-info { min-width:0; }
-        .item-title { font-size:13px; font-weight:650; letter-spacing:-.3px; line-height:1.5; overflow-wrap:anywhere; }
-        .item-card:not(.col2):not(.col3):not(.carousel1):not(.carousel2)::after { content:'›'; color:#b5a3a9; font-size:25px; font-weight:300; margin-left:auto; padding-right:3px; }
-        .item-card.col2,.item-card.col3,.item-card.carousel1,.item-card.carousel2 { border-radius:15px; }
-        .item-card.col2 .item-img,.item-card.carousel2 .item-img { height:112px; }
-        .item-card.col3 .item-img { height:75px; }
-        .item-card.carousel1 .item-img { height:150px; }
-        .items-wrap.carousel { padding:5px 1px 13px; scroll-snap-type:x mandatory; }
-        .items-wrap.carousel .item-card { scroll-snap-align:start; }
-        .items-wrap.carousel::-webkit-scrollbar-thumb { background:#dfbac4; }
-        .footer { font-size:11px; color:#b8a3a9; margin-top:44px; }
-        .empty-state { text-align:center; color:var(--muted); padding:32px 10px; background:#fff; border-radius:16px; }
-        @media (min-width:700px) { body { padding-top:32px; } .container { background:#fff9f9a8; border:1px solid #faeeee; border-radius:32px; padding:0 25px 25px; box-shadow:0 18px 55px #aa7b8817; } }
-        @media (max-width:360px) { .item-title { font-size:12px; } .item-card { padding:10px; gap:10px; } .item-img { width:52px; height:52px; } }
-      
-/* ===== FreeStyle 고객용 페이지 리뉴얼 ===== */
+<style>
 :root {
-  --bg: #f7eeec;
-  --card: #ffffff;
-  --pink: #f4779a;
-  --pink-soft: #ffedf2;
-  --text: #292a32;
-  --muted: #8c8993;
-  --border: #f0e4e5;
-  --shadow: 0 5px 18px rgba(93, 66, 77, .07);
+    --pink: #ed7294;
+    --pink-dark: #ca557b;
+    --ink: #302d36;
+    --muted: #90838a;
+    --line: #f2e4e7;
 }
 
 * {
-  box-sizing: border-box;
-  font-family: 'Apple SD Gothic Neo', 'Malgun Gothic',
-               sans-serif;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Pretendard','Apple SD Gothic Neo',
+                 'Malgun Gothic',sans-serif;
 }
 
 body {
-  background: var(--bg);
-  color: var(--text);
-  padding: 22px 14px 50px;
-  display: flex;
-  justify-content: center;
-  min-height: 100vh;
+    min-height: 100vh;
+    padding: 0 15px 55px;
+    color: var(--ink);
+    background: linear-gradient(
+        165deg,#fff9f8,#f9eceb,#fff7f4
+    );
 }
 
 .container {
-  width: 100%;
-  max-width: 480px;
-  text-align: center;
+    width: 100%;
+    max-width: 510px;
+    margin: auto;
+    text-align: center;
 }
 
-/* 프로필 */
 #profile-container {
-  padding-top: 26px;
+    padding-top: 42px;
 }
 
 .profile-img {
-  width: 100px;
-  height: 100px;
-  border-radius: 50%;
-  margin: 0 auto 16px;
-  background: white;
-  border: 4px solid white;
-  box-shadow: 0 5px 20px rgba(0,0,0,.08);
-  object-fit: cover;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--pink);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100px;
+    height: 100px;
+    margin: 0 auto 16px;
+    border: 4px solid white;
+    border-radius: 50%;
+    background: #fce5e9;
+    object-fit: cover;
+    font-size: 32px;
+    box-shadow: 0 6px 24px #b57e8924;
 }
 
 h1 {
-  color: #262630;
-  font-size: 23px;
-  font-weight: 800;
-  letter-spacing: -.6px;
-  margin-bottom: 9px;
+    font-size: 23px;
+    font-weight: 800;
+    letter-spacing: -.6px;
 }
 
-p.sub {
-  color: var(--muted);
-  font-size: 13px;
-  line-height: 1.7;
-  margin-bottom: 34px;
+.sub {
+    margin: 9px 0 20px;
+    color: #9c8991;
+    font-size: 13px;
+    line-height: 1.6;
 }
 
-/* 카테고리 그룹 */
+.top-accent {
+    width: 42px;
+    height: 4px;
+    margin: 0 auto 27px;
+    border-radius: 5px;
+    background: #e9a5b6;
+}
+
+/* 검색 */
+.search-box {
+    position: relative;
+    margin-bottom: 13px;
+}
+
+.search-input {
+    width: 100%;
+    height: 49px;
+    padding: 0 45px 0 43px;
+    border: 1px solid #f0dde3;
+    border-radius: 14px;
+    background: white;
+    color: var(--ink);
+    font-size: 14px;
+    outline: none;
+    box-shadow: 0 4px 16px #8c61670d;
+}
+
+.search-input:focus {
+    border-color: var(--pink);
+}
+
+.search-icon {
+    position: absolute;
+    top: 13px;
+    left: 15px;
+    font-size: 19px;
+}
+
+.search-clear {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 50%;
+    background: #f6eef1;
+    color: #837780;
+    cursor: pointer;
+}
+
+.search-clear[hidden] {
+    display: none;
+}
+
+.list-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 18px 2px 16px;
+    font-size: 12px;
+}
+
+.list-toolbar strong {
+    font-size: 13px;
+}
+
+.list-count {
+    color: var(--muted);
+}
+
+#content-list {
+    text-align: left;
+}
+
+/* 그룹 */
 .group-container {
-  margin-bottom: 27px;
-  text-align: left;
+    margin-bottom: 26px;
 }
 
 .group-title {
-  color: var(--pink);
-  font-size: 15px;
-  font-weight: 800;
-  margin-bottom: 13px;
-  padding: 0 3px 11px;
-  border-bottom: 1px solid #e9dbdc;
-  letter-spacing: -.3px;
+    margin-bottom: 8px;
+    padding: 0 3px 11px;
+    color: var(--pink-dark);
+    font-size: 14px;
+    font-weight: 800;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
 }
 
-/* 상품 목록 */
+/* 상품 카드 */
 .items-wrap {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 11px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
 }
 
 .items-wrap.carousel {
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  padding-bottom: 12px;
-  scroll-snap-type: x proximity;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding: 5px 1px 13px;
+    scroll-snap-type: x proximity;
 }
 
-.items-wrap.carousel::-webkit-scrollbar {
-  height: 4px;
-}
-
-.items-wrap.carousel::-webkit-scrollbar-thumb {
-  background: #e7cbd2;
-  border-radius: 10px;
-}
-
-/* 기본 상품 카드 */
 .item-card {
-  width: 100%;
-  min-height: 87px;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 13px;
-  background: var(--card);
-  color: var(--text);
-  text-decoration: none;
-  border: 1px solid var(--border);
-  border-radius: 17px;
-  box-shadow: var(--shadow);
-  cursor: pointer;
-  transition: transform .2s, box-shadow .2s;
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    width: 100%;
+    min-height: 75px;
+    padding: 12px;
+    border: 1px solid #f6eeee;
+    border-radius: 16px;
+    background: white;
+    color: var(--ink);
+    text-decoration: none;
+    cursor: pointer;
+    box-shadow: 0 4px 16px #8c61670d;
+    transition: transform .2s,box-shadow .2s;
 }
 
 .item-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 24px rgba(93,66,77,.12);
+    transform: translateY(-2px);
+    box-shadow: 0 9px 24px #aa68751a;
 }
 
 .item-card:active {
-  transform: scale(.99);
+    transform: scale(.985);
 }
 
-/* 상품 이미지 */
 .item-img {
-  width: 62px;
-  height: 62px;
-  flex-shrink: 0;
-  border-radius: 12px;
-  object-fit: cover;
-  background: #f4f4f6;
+    width: 58px;
+    height: 58px;
+    flex-shrink: 0;
+    border-radius: 11px;
+    background: #f8eeee;
+    object-fit: cover;
 }
 
 .item-info {
-  flex-grow: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-align: left;
+    flex: 1;
+    min-width: 0;
+    text-align: left;
 }
 
 .item-title {
-  color: #30313a;
-  font-size: 13px;
-  font-weight: 700;
-  line-height: 1.6;
-  letter-spacing: -.25px;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+    font-size: 13px;
+    font-weight: 650;
+    line-height: 1.5;
 }
 
-/* 2열 배치 */
+.item-card.list::after {
+    content: '›';
+    margin-left: auto;
+    color: #b5a3a9;
+    font-size: 25px;
+}
+
+.item-card.col2,
+.item-card.col3,
+.item-card.carousel1,
+.item-card.carousel2 {
+    flex-direction: column;
+    text-align: center;
+    gap: 8px;
+}
+
 .item-card.col2 {
-  width: calc(50% - 5.5px);
-  flex-direction: column;
-  text-align: center;
-  padding: 12px;
-  gap: 10px;
+    width: calc(50% - 5px);
 }
 
-.item-card.col2 .item-img {
-  width: 100%;
-  height: 125px;
-}
-
-/* 3열 배치 */
 .item-card.col3 {
-  width: calc(33.333% - 7.4px);
-  flex-direction: column;
-  text-align: center;
-  padding: 9px;
-  gap: 7px;
+    width: calc(33.333% - 7px);
+    padding: 8px;
 }
 
-.item-card.col3 .item-img {
-  width: 100%;
-  height: 80px;
-}
-
-.item-card.col3 .item-title {
-  font-size: 11px;
-}
-
-/* 캐러셀 */
 .item-card.carousel1 {
-  width: 78%;
-  flex-shrink: 0;
-  flex-direction: column;
-  padding: 12px;
-  scroll-snap-align: start;
-}
-
-.item-card.carousel1 .item-img {
-  width: 100%;
-  height: 165px;
+    width: 75%;
+    flex-shrink: 0;
+    scroll-snap-align: start;
 }
 
 .item-card.carousel2 {
-  width: 49%;
-  flex-shrink: 0;
-  flex-direction: column;
-  padding: 11px;
-  scroll-snap-align: start;
+    width: 50%;
+    flex-shrink: 0;
+    scroll-snap-align: start;
 }
 
+.item-card.col2 .item-img,
 .item-card.carousel2 .item-img {
-  width: 100%;
-  height: 115px;
+    width: 100%;
+    height: 112px;
 }
 
-/* 격자 카드의 제목 정렬 */
+.item-card.col3 .item-img {
+    width: 100%;
+    height: 75px;
+}
+
+.item-card.carousel1 .item-img {
+    width: 100%;
+    height: 150px;
+}
+
 .item-card.col2 .item-info,
 .item-card.col3 .item-info,
 .item-card.carousel1 .item-info,
 .item-card.carousel2 .item-info {
-  width: 100%;
-  text-align: center;
+    width: 100%;
+    text-align: center;
 }
 
-/* 카드 내부 텍스트 색상 */
-.item-card .item-title {
-  color: #30313a;
+.item-card.col3 .item-title {
+    font-size: 11px;
+    -webkit-line-clamp: 1;
 }
 
-/* 하단 영역 */
+/* 더 보기 */
+.more-button {
+    display: block;
+    width: 100%;
+    margin: 12px 0 25px;
+    padding: 15px;
+    border: 1px solid #ecc7d2;
+    border-radius: 14px;
+    background: #fff;
+    color: var(--pink-dark);
+    font-size: 14px;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 4px 15px #8c61670d;
+}
+
+.more-button:hover {
+    background: #fff0f4;
+}
+
+.more-button[hidden] {
+    display: none;
+}
+
+.empty-state {
+    padding: 35px 15px;
+    border-radius: 16px;
+    background: white;
+    color: var(--muted);
+    font-size: 13px;
+    text-align: center;
+}
+
 .footer {
-  margin-top: 43px;
-  padding: 22px 0;
-  color: #aaa0a4;
-  font-size: 11px;
+    margin-top: 38px;
+    color: #b8a3a9;
+    font-size: 11px;
 }
 
-/* 모바일 */
-@media(max-width: 380px) {
-  body {
-    padding: 15px 12px 35px;
-  }
+/* PC */
+@media(min-width:700px) {
+    body {
+        padding-top: 32px;
+    }
 
-  .item-card {
-    padding: 10px;
-    gap: 11px;
-  }
-
-  .item-img {
-    width: 55px;
-    height: 55px;
-  }
-
-  .item-title {
-    font-size: 12px;
-  }
-}
-
-
-/* PC 화면에서 고객용 페이지 폭 확장 */
-@media (min-width: 768px) {
     .container {
-        max-width: 600px;
+        max-width: 620px;
+        padding: 0 25px 25px;
+        border: 1px solid #faeeee;
+        border-radius: 32px;
+        background: #fff9f9a8;
+        box-shadow: 0 18px 55px #aa7b8817;
     }
 }
 
-/* 그룹 제목 한 줄 표시 */
-.group-title {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+/* 모바일 */
+@media(max-width:360px) {
+    .item-card {
+        padding: 10px;
+        gap: 9px;
+    }
+
+    .item-img {
+        width: 52px;
+        height: 52px;
+    }
+
+    .item-title {
+        font-size: 12px;
+    }
 }
-
-
-    </style>
+</style>
 </head>
+
 <body>
-    <div class="container">
-        <div id="profile-container">
-            <div class="profile-img">🔥</div>
-        </div>
-        <h1>FreeStyle 꿀템 저장소</h1>
-        <p class="sub">쇼츠에서 소개한 좋은 아이템들을 한곳에 모았어요 ♡</p>
-        <div class="top-accent" aria-hidden="true"></div>
+<div class="container">
 
-        <div id="content-list">
-            <p style="color:#666;">상품을 불러오는 중...</p>
-        </div>
-
-        <div class="footer">© 2026 FreeStyle. All rights reserved.</div>
+    <div id="profile-container">
+        <div class="profile-img">🔥</div>
     </div>
 
-    <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyCMy4vdbdLd26v8l2kGTsCW-IZaGklqwLs",
-            authDomain: "freestyle-db-becce.firebaseapp.com",
-            projectId: "freestyle-db-becce",
-            storageBucket: "freestyle-db-becce.firebasestorage.app",
-            messagingSenderId: "811035384445",
-            appId: "1:811035384445:web:490ffeb5f09cb763f0ef14",
-            measurementId: "G-FY7T44KY7D"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
+    <h1>FreeStyle 꿀템 저장소</h1>
 
-        db.ref('settings/profileImg').on('value', function(snapshot) {
-            const url = snapshot.val();
-            const profileContainer = document.getElementById('profile-container');
-            if (url) {
-                profileContainer.innerHTML = '<img src="' + url + '" class="profile-img" alt="프로필 이미지">';
-            } else {
-                profileContainer.innerHTML = '<div class="profile-img">🔥</div>';
-            }
-        });
+    <p class="sub">
+        쇼츠에서 소개한 좋은 아이템들을 한곳에 모았어요 ♡
+    </p>
 
-        function handleItemClick(itemId, targetLink) {
-            db.ref('products/' + itemId + '/clicks').transaction(function(currentClicks) {
-                return (currentClicks || 0) + 1;
-            }, function() {
-                window.open(targetLink, '_blank');
+    <div class="top-accent"></div>
+
+    <div class="search-box">
+        <span class="search-icon">⌕</span>
+
+        <input
+            id="productSearch"
+            class="search-input"
+            type="search"
+            placeholder="영상 제목 또는 상품명 검색"
+            autocomplete="off"
+            aria-label="상품 검색">
+
+        <button
+            id="clearSearch"
+            class="search-clear"
+            type="button"
+            aria-label="검색어 지우기"
+            hidden>✕</button>
+    </div>
+
+    <div class="list-toolbar">
+        <strong id="listHeading">최신 추천 상품</strong>
+        <span id="listCount" class="list-count"></span>
+    </div>
+
+    <div id="content-list">
+        <div class="empty-state">
+            상품을 불러오는 중입니다...
+        </div>
+    </div>
+
+    <button
+        id="loadMoreButton"
+        class="more-button"
+        type="button"
+        hidden>
+        이전 상품 더 보기 ↓
+    </button>
+
+    <div class="footer">
+        © 2026 FreeStyle. All rights reserved.
+    </div>
+
+</div>
+
+<script>
+/* Firebase */
+const firebaseConfig = {
+    apiKey: "AIzaSyCMy4vdbdLd26v8l2kGTsCW-IZaGklqwLs",
+    authDomain: "freestyle-db-becce.firebaseapp.com",
+    projectId: "freestyle-db-becce",
+    storageBucket: "freestyle-db-becce.firebasestorage.app",
+    messagingSenderId: "811035384445",
+    appId: "1:811035384445:web:490ffeb5f09cb763f0ef14",
+    measurementId: "G-FY7T44KY7D"
+};
+
+firebase.initializeApp(firebaseConfig);
+
+const db = firebase.database();
+
+/* 페이지 설정 */
+const PAGE_SIZE = 10;
+
+let productsData = {};
+let visibleCount = PAGE_SIZE;
+let searchKeyword = '';
+let groupList = [];
+let groupOrderMeta = {};
+
+const contentList = document.getElementById('content-list');
+const moreButton = document.getElementById('loadMoreButton');
+const searchInput = document.getElementById('productSearch');
+const clearButton = document.getElementById('clearSearch');
+
+/* Firebase Push ID의 생성 시각 추출 */
+function getPushTime(id) {
+    const chars =
+        '-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz';
+
+    if (typeof id !== 'string' || id.length < 20) {
+        return 0;
+    }
+
+    let time = 0;
+
+    for (let i = 0; i < 8; i++) {
+        const n = chars.indexOf(id.charAt(i));
+        if (n < 0) return 0;
+        time = time * 64 + n;
+    }
+
+    return Number.isSafeInteger(time) ? time : 0;
+}
+
+function safeImage(src) {
+    if (typeof src !== 'string') return '';
+
+    if (/^https?:\/\//i.test(src) ||
+        /^data:image\/(png|jpeg|webp|gif);base64,/i.test(src)) {
+        return src;
+    }
+
+    return '';
+}
+
+function safeLink(url) {
+    try {
+        const parsed = new URL(url);
+        return ['http:', 'https:'].includes(parsed.protocol)
+            ? parsed.href : '';
+    } catch {
+        return '';
+    }
+}
+
+/* 상품 데이터로 그룹 목록 생성 */
+function buildGroups() {
+    const groups = new Map();
+
+    Object.entries(productsData).forEach(([id, item]) => {
+        if (!item || !item.group) return;
+
+        // 숨김 상품도 정렬 시점 계산에는 포함
+        if (!groups.has(item.group)) {
+            groups.set(item.group, {
+                name: item.group,
+                items: [],
+                createdAt: Infinity,
+                firstKey: id
             });
         }
 
-        db.ref('products').on('value', function(snapshot) {
-            const data = snapshot.val();
-            const container = document.getElementById('content-list');
-            container.innerHTML = '';
+        const group = groups.get(item.group);
 
-            if (!data) {
-                container.innerHTML = '<p class="empty-state">아직 등록된 상품이 없어요 🌷</p>';
-                return;
+        const createdAt =
+            Number(item.groupCreatedAt) ||
+            getPushTime(id);
+
+        if (createdAt > 0) {
+            group.createdAt =
+                Math.min(group.createdAt, createdAt);
+        }
+
+        if (id < group.firstKey) group.firstKey = id;
+
+        if (item.active !== false) {
+            group.items.push({
+                ...item,
+                id
+            });
+        }
+    });
+
+    groupList = [...groups.values()]
+        .filter(group => group.items.length > 0)
+        .map(group => {
+            // 메타데이터가 있으면 최초 등록 순서를 우선 사용
+            const meta = groupOrderMeta[group.name];
+            const metaTime = Number(meta?.createdAt);
+
+            if (Number.isFinite(metaTime) && metaTime > 0) {
+                group.createdAt = metaTime;
             }
 
-            const groups = {};
-            const groupOrder = [];
+            group.items.sort((a, b) =>
+                (Number(a.order) || 0) -
+                (Number(b.order) || 0)
+            );
 
-            Object.keys(data).forEach(function(id) {
-                const item = data[id];
-                // active가 false인 상품은 건너뜀 (게시 안 함 옵션 반영)
-                if (item.active === false) return;
+            if (!Number.isFinite(group.createdAt)) {
+                group.createdAt = 0;
+            }
 
-                item.id = id;
-                if (!groups[item.group]) {
-                    groups[item.group] = [];
-                    groupOrder.push(item.group);
-                }
-                groups[item.group].push(item);
-            });
+            return group;
+        })
+        .sort((a, b) => {
+            if (b.createdAt !== a.createdAt) {
+                return b.createdAt - a.createdAt;
+            }
 
-            groupOrder.reverse().forEach(function(groupName) {
-                const groupItems = groups[groupName];
-                if (!groupItems || groupItems.length === 0) return;
-
-                // 순서(order) 필드 기준으로 정렬
-                groupItems.sort(function(a, b) {
-                    return (a.order || 0) - (b.order || 0);
-                });
-
-                const layout = groupItems[0].layout || 'list';
-                const isCarousel = layout.includes('carousel');
-
-                const groupDiv = document.createElement('div');
-                groupDiv.className = 'group-container';
-                groupDiv.innerHTML = '<div class="group-title"></div>';
-                const groupTitleEl = groupDiv.querySelector('.group-title');
-                groupTitleEl.textContent = '✦ ' + groupName;
-                groupTitleEl.style.color = groupItems[0].groupColor || '#c96684';
-
-                const itemsWrap = document.createElement('div');
-                itemsWrap.className = 'items-wrap ' + (isCarousel ? 'carousel' : '');
-
-                groupItems.forEach(function(item) {
-                    const card = document.createElement('div');
-                    let layoutClass = '';
-                    if (layout === 'col2') layoutClass = 'col2';
-                    else if (layout === 'col3') layoutClass = 'col3';
-                    else if (layout === 'carousel1') layoutClass = 'carousel1';
-                    else if (layout === 'carousel2') layoutClass = 'carousel2';
-
-                    card.className = 'item-card ' + layoutClass;
-                    card.innerHTML = 
-                        '<img src="' + (item.image || 'https://via.placeholder.com/55') + '" class="item-img" loading="lazy" alt="상품 이미지">' +
-                        '<div class="item-info">' +
-                            '<div class="item-title">' + item.title + '</div>' +
-                        '</div>';
-                    
-                    card.querySelector('.item-title').textContent = item.title || '';
-                    // Legacy white text is adapted for the new white card surface.
-                    const savedColor = item.productTextColor;
-                    if (savedColor && !['#ffffff','#fff','white'].includes(savedColor.toLowerCase())) {
-                        card.querySelector('.item-title').style.color = savedColor;
-                    }
-                    card.onclick = function() {
-                        handleItemClick(item.id, item.link);
-                    };
-                    itemsWrap.appendChild(card);
-                });
-
-                groupDiv.appendChild(itemsWrap);
-                container.appendChild(groupDiv);
-            });
+            return b.firstKey.localeCompare(a.firstKey);
         });
-    </script>
+}
+
+/* 검색 */
+function getFilteredGroups() {
+    if (!searchKeyword) return groupList;
+
+    return groupList
+        .map(group => {
+            const matchesGroup =
+                group.name.toLowerCase()
+                    .includes(searchKeyword);
+
+            const matchedItems = matchesGroup
+                ? group.items
+                : group.items.filter(item =>
+                    String(item.title || '')
+                        .toLowerCase()
+                        .includes(searchKeyword)
+                );
+
+            return {
+                ...group,
+                items: matchedItems
+            };
+        })
+        .filter(group => group.items.length > 0);
+}
+
+/* 클릭 통계 기록 + 링크 이동 */
+function handleItemClick(id, url) {
+    const target = safeLink(url);
+
+    if (!target) {
+        alert('상품 링크를 확인할 수 없습니다.');
+        return;
+    }
+
+    // 사용자 클릭 시 즉시 이동할 수 있도록 창을 먼저 엶
+    const opened = window.open(
+        'about:blank',
+        '_blank'
+    );
+
+    if (opened) opened.opener = null;
+
+    // 통계 기록이 실패해도 상품 링크는 열리도록 처리
+    db.ref('products/' + id + '/clicks')
+        .transaction(current => (Number(current) || 0) + 1)
+        .catch(error => {
+            console.warn('클릭 통계 기록 실패', error);
+        });
+
+    if (opened) {
+        opened.location.replace(target);
+    } else {
+        window.location.href = target;
+    }
+}
+
+/* 상품 카드 */
+function createProductCard(item, layout) {
+    const card = document.createElement('a');
+    card.className = 'item-card ' + layout;
+
+    const url = safeLink(item.link);
+
+    card.href = url || '#';
+    card.target = '_blank';
+    card.rel = 'noopener noreferrer';
+
+    const img = document.createElement('img');
+    img.className = 'item-img';
+    img.loading = 'lazy';
+    img.alt = '상품 이미지';
+
+    const src = safeImage(item.image);
+
+    if (src) img.src = src;
+
+    const info = document.createElement('div');
+    info.className = 'item-info';
+
+    const title = document.createElement('div');
+    title.className = 'item-title';
+    title.textContent = item.title || '상품명 없음';
+
+    const color = item.productTextColor || '';
+
+    if (/^#[0-9a-f]{6}$/i.test(color) &&
+        color.toLowerCase() !== '#ffffff') {
+        title.style.color = color;
+    }
+
+    info.appendChild(title);
+    card.appendChild(img);
+    card.appendChild(info);
+
+    card.addEventListener('click', event => {
+        // 직접 처리하여 새 창과 클릭 통계 연결
+        event.preventDefault();
+        handleItemClick(item.id, item.link);
+    });
+
+    return card;
+}
+
+/* 그룹 */
+function createGroup(group) {
+    const section = document.createElement('section');
+    section.className = 'group-container';
+
+    const heading = document.createElement('h2');
+    heading.className = 'group-title';
+    heading.textContent = '✦ ' + group.name;
+
+    const color = group.items[0].groupColor;
+
+    if (/^#[0-9a-f]{6}$/i.test(color || '')) {
+        heading.style.color = color;
+    }
+
+    const layout = [
+        'list','col2','col3','carousel1','carousel2'
+    ].includes(group.items[0].layout)
+        ? group.items[0].layout : 'list';
+
+    const wrap = document.createElement('div');
+    wrap.className = 'items-wrap';
+
+    if (layout.includes('carousel')) {
+        wrap.classList.add('carousel');
+    }
+
+    group.items.forEach(item => {
+        wrap.appendChild(createProductCard(item, layout));
+    });
+
+    section.appendChild(heading);
+    section.appendChild(wrap);
+
+    return section;
+}
+
+/* 화면 출력 */
+function renderProducts() {
+    const filtered = getFilteredGroups();
+    const visible = filtered.slice(0, visibleCount);
+
+    contentList.replaceChildren();
+
+    document.getElementById('listHeading').textContent =
+        searchKeyword ? '검색 결과' : '최신 추천 상품';
+
+    document.getElementById('listCount').textContent =
+        `${filtered.length}개 그룹`;
+
+    if (!filtered.length) {
+        const empty = document.createElement('div');
+        empty.className = 'empty-state';
+        empty.textContent = searchKeyword
+            ? '검색 결과가 없습니다. 다른 검색어를 입력해 보세요.'
+            : '아직 등록된 상품이 없습니다.';
+        contentList.appendChild(empty);
+    } else {
+        visible.forEach(group => {
+            contentList.appendChild(createGroup(group));
+        });
+    }
+
+    const remaining = filtered.length - visible.length;
+
+    moreButton.hidden = remaining <= 0;
+
+    if (remaining > 0) {
+        moreButton.textContent =
+            `이전 상품 더 보기 ↓ (${remaining}개 그룹 남음)`;
+    }
+}
+
+/* 더 보기 */
+moreButton.addEventListener('click', () => {
+    visibleCount += PAGE_SIZE;
+    renderProducts();
+});
+
+/* 검색 */
+searchInput.addEventListener('input', () => {
+    searchKeyword =
+        searchInput.value.trim().toLowerCase();
+
+    visibleCount = PAGE_SIZE;
+    clearButton.hidden = !searchKeyword;
+
+    renderProducts();
+});
+
+clearButton.addEventListener('click', () => {
+    searchInput.value = '';
+    searchKeyword = '';
+    visibleCount = PAGE_SIZE;
+    clearButton.hidden = true;
+    renderProducts();
+    searchInput.focus();
+});
+
+/* 프로필 실시간 구독 */
+db.ref('settings/profileImg').on('value', snapshot => {
+    const container =
+        document.getElementById('profile-container');
+
+    container.replaceChildren();
+
+    const src = safeImage(snapshot.val());
+
+    if (src) {
+        const image = document.createElement('img');
+        image.className = 'profile-img';
+        image.src = src;
+        image.alt = '프로필 이미지';
+        container.appendChild(image);
+    } else {
+        const fallback = document.createElement('div');
+        fallback.className = 'profile-img';
+        fallback.textContent = '🔥';
+        container.appendChild(fallback);
+    }
+});
+
+/* 최초 등록 순서 메타데이터 */
+db.ref('groupOrder').on('value', snapshot => {
+    groupOrderMeta = snapshot.val() || {};
+    buildGroups();
+    renderProducts();
+});
+
+/* 상품 실시간 구독 */
+db.ref('products').on('value', snapshot => {
+    productsData = snapshot.val() || {};
+    buildGroups();
+    renderProducts();
+}, error => {
+    console.error(error);
+    contentList.textContent =
+        '상품을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.';
+});
+
+</script>
 </body>
 </html>
