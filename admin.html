@@ -8,6 +8,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 
 <style>
 :root {
@@ -753,12 +754,173 @@ input[type=color] {
         margin-left: auto;
     }
 }
+    
+/* ===== 관리자 로그인 UI ===== */
+[hidden] {
+    display: none !important;
+}
+
+.login-screen {
+    min-height: 90vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.login-card {
+    width: 100%;
+    max-width: 400px;
+    padding: 38px 30px;
+    background: #ffffff;
+    border-radius: 22px;
+    box-shadow: 0 12px 40px rgba(80, 40, 60, 0.1);
+    text-align: center;
+}
+
+.login-logo {
+    font-size: 42px;
+    margin-bottom: 12px;
+}
+
+.login-card h2 {
+    text-align: center;
+    font-size: 24px;
+    color: #30313b;
+    margin-bottom: 10px;
+}
+
+.login-desc {
+    color: #918792;
+    font-size: 13px;
+    margin-bottom: 26px;
+}
+
+.login-input {
+    display: block;
+    width: 100%;
+    height: 48px;
+    margin: 11px 0;
+    padding: 0 15px;
+    border: 1px solid #e8dfe4;
+    border-radius: 11px;
+    background: #fcfafb;
+    font-size: 14px;
+}
+
+.login-input:focus {
+    outline: none;
+    border-color: #ed7295;
+}
+
+.login-button {
+    width: 100%;
+    margin-top: 17px;
+    padding: 15px;
+    border: 0;
+    border-radius: 12px;
+    background: #ed7295;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.login-button:disabled {
+    opacity: .55;
+    cursor: wait;
+}
+
+.login-error {
+    min-height: 20px;
+    margin-top: 15px;
+    color: #d84f70;
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.admin-session {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 22px;
+    padding: 12px 15px;
+    background: #fff3f6;
+    border-radius: 12px;
+}
+
+.admin-email {
+    font-size: 12px;
+    color: #605763;
+    overflow-wrap: anywhere;
+}
+
+.logout-button {
+    width: auto;
+    flex-shrink: 0;
+    margin: 0;
+    padding: 9px 13px;
+    border: 1px solid #f2c3d0;
+    border-radius: 9px;
+    background: white;
+    color: #d45277;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
 </style>
 </head>
 
 <body>
 
-<div class="admin-wrapper">
+<!-- Firebase 관리자 로그인 -->
+<div id="loginScreen" class="login-screen">
+
+    <div class="login-card">
+        <div class="login-logo">🔐</div>
+
+        <h2>FreeStyle 관리자</h2>
+
+        <p class="login-desc">
+            관리자 계정으로 로그인해 주세요.
+        </p>
+
+        <form id="adminLoginForm"
+              onsubmit="adminLogin(event)">
+
+            <input
+                type="email"
+                id="adminEmail"
+                class="login-input"
+                placeholder="관리자 이메일"
+                autocomplete="username"
+                required>
+
+            <input
+                type="password"
+                id="adminPassword"
+                class="login-input"
+                placeholder="비밀번호"
+                autocomplete="current-password"
+                required>
+
+            <button type="submit"
+                    id="loginButton"
+                    class="login-button">
+                로그인
+            </button>
+
+        </form>
+
+        <div id="loginError"
+             class="login-error"
+             role="alert"></div>
+    </div>
+</div>
+
+<div class="admin-wrapper" id="adminWrapper" hidden>
 
     <!-- 모바일 미리보기 -->
     <aside class="preview-pane">
@@ -792,6 +954,16 @@ input[type=color] {
 
     <!-- 관리자 패널 -->
     <main class="admin-box">
+
+<div class="admin-session">
+    <span id="loggedInEmail" class="admin-email"></span>
+
+    <button type="button"
+            class="logout-button"
+            onclick="adminLogout()">
+        로그아웃
+    </button>
+</div>
 
         <h1 class="top-title">FreeStyle 관리자</h1>
         <p class="top-desc">
@@ -1020,6 +1192,97 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 
 const db = firebase.database();
+
+/* ===== Firebase 관리자 인증 ===== */
+
+const auth = firebase.auth();
+
+/*
+ Firebase Authentication → 사용자 → 사용자 UID
+ 실제 UID로 변경하세요.
+ 이메일이나 비밀번호를 여기에 입력하면 안 됩니다.
+*/
+const ADMIN_UID = '여기에_관리자_UID_입력';
+
+let isAdminAuthenticated = false;
+
+function showAdminScreen(visible) {
+    document.getElementById('loginScreen').hidden = visible;
+    document.getElementById('adminWrapper').hidden = !visible;
+}
+
+async function adminLogin(event) {
+    event.preventDefault();
+
+    const email =
+        document.getElementById('adminEmail').value.trim();
+
+    const password =
+        document.getElementById('adminPassword').value;
+
+    const button =
+        document.getElementById('loginButton');
+
+    const error =
+        document.getElementById('loginError');
+
+    error.textContent = '';
+    button.disabled = true;
+    button.textContent = '로그인 중...';
+
+    try {
+        const result =
+            await auth.signInWithEmailAndPassword(email, password);
+
+        if (result.user.uid !== ADMIN_UID) {
+            await auth.signOut();
+            throw new Error('관리자 권한이 없는 계정입니다.');
+        }
+
+        document.getElementById('adminPassword').value = '';
+
+    } catch (err) {
+        console.error('관리자 로그인 실패:', err.code || err.message);
+
+        if (err.message === '관리자 권한이 없는 계정입니다.') {
+            error.textContent = err.message;
+        } else {
+            error.textContent =
+                '로그인에 실패했습니다. 이메일과 비밀번호를 확인하세요.';
+        }
+    } finally {
+        button.disabled = false;
+        button.textContent = '로그인';
+    }
+}
+
+async function adminLogout() {
+    try {
+        await auth.signOut();
+    } catch (err) {
+        alert('로그아웃 오류: ' + err.message);
+    }
+}
+
+/* 로그인 상태 확인 */
+auth.onAuthStateChanged(async user => {
+    isAdminAuthenticated = false;
+
+    if (user && user.uid === ADMIN_UID) {
+        isAdminAuthenticated = true;
+
+        document.getElementById('loggedInEmail').textContent =
+            '👤 ' + (user.email || '관리자');
+
+        showAdminScreen(true);
+    } else {
+        showAdminScreen(false);
+
+        if (user) {
+            await auth.signOut();
+        }
+    }
+});
 
 let allProductsData = {};
 let currentLayout = 'list';
