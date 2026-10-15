@@ -1440,6 +1440,25 @@ document.getElementById('productRowsContainer')
    기존 상품 ID와 클릭 수 보존
 ======================================== */
 
+function getPushTime(id) {
+    const chars =
+        '-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz';
+
+    if (typeof id !== 'string' || id.length < 20) {
+        return 0;
+    }
+
+    let time = 0;
+
+    for (let i = 0; i < 8; i++) {
+        const n = chars.indexOf(id[i]);
+        if (n < 0) return 0;
+        time = time * 64 + n;
+    }
+
+    return Number.isSafeInteger(time) ? time : 0;
+}
+
 async function saveGroupProducts() {
     const groupTitle =
         document.getElementById('groupTitleInput')
@@ -1517,6 +1536,22 @@ async function saveGroupProducts() {
     try {
         const updates = {};
 
+// 기존 그룹 최초 등록 시각 유지
+const originalItems = Object.entries(allProductsData)
+    .filter(([id, item]) =>
+        editingGroupName && item.group === editingGroupName
+    );
+
+const originalTimes = originalItems
+    .map(([id, item]) =>
+        Number(item.groupCreatedAt) || getPushTime(id)
+    )
+    .filter(time => time > 0);
+
+const groupCreatedAt = originalTimes.length
+    ? Math.min(...originalTimes)
+    : Date.now();
+
         const currentIds = new Set(
             items.map(item => item.id).filter(Boolean)
         );
@@ -1550,7 +1585,7 @@ const originalCreatedAt = editingGroupName
     : Date.now();
             
             const { id: ignoredId, ...record } = item;
-
+record.groupCreatedAt = groupCreatedAt;
             if (oldProduct) {
                 // 기존 레코드의 clicks는 건드리지 않음
                 Object.entries(record).forEach(
