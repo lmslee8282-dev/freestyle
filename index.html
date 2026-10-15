@@ -1,225 +1,266 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FreeStyle 꿀템 저장소</title>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Apple SD Gothic Neo', sans-serif; }
-        body { background-color: #121212; color: #fff; display: flex; justify-content: center; padding: 20px; min-height: 100vh; }
-        .container { width: 100%; max-width: 480px; text-align: center; }
-        
-        .profile-img { 
-            width: 90px; height: 90px; border-radius: 50%; background: #2a2a2a; 
-            margin: 0 auto 12px; display: flex; align-items: center; justify-content: center; 
-            font-size: 32px; border: 2px solid #444; object-fit: cover; 
-        }
-        h1 { font-size: 20px; margin-bottom: 5px; }
-        p.sub { font-size: 13px; color: #888; margin-bottom: 25px; }
-        
-        .group-container { margin-bottom: 25px; text-align: left; }
-        .group-title { font-size: 15px; font-weight: bold; color: #ff4757; margin-bottom: 10px; border-bottom: 1px solid #333; padding-bottom: 6px; }
-        
-        /* 📦 레이아웃별 스타일 클래스 */
-        .items-wrap { display: flex; gap: 8px; flex-wrap: wrap; }
-        .items-wrap.carousel { display: flex; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 6px; }
-        .items-wrap.carousel::-webkit-scrollbar { height: 4px; }
-        .items-wrap.carousel::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
 
-        .item-card { 
-            background: #1e1e1e; border-radius: 10px; padding: 10px; display: flex; align-items: center; gap: 12px; 
-            border: 1px solid #333; text-decoration: none; color: #fff; transition: 0.2s; cursor: pointer; width: 100%; 
-        }
-        .item-card:hover { transform: translateY(-2px); border-color: #ff4757; }
-        
-        /* 2열 배치 (col2) */
-        .item-card.col2 { width: calc(50% - 4px); flex-direction: column; text-align: center; gap: 6px; padding: 8px; }
-        .item-card.col2 .item-img { width: 100%; height: 90px; }
-        
-        /* 3열 배치 (col3) */
-        .item-card.col3 { width: calc(33.333% - 5px); flex-direction: column; text-align: center; gap: 4px; padding: 6px; }
-        .item-card.col3 .item-img { width: 100%; height: 70px; }
-        .item-card.col3 .item-title { font-size: 11px; -webkit-line-clamp: 1; }
+/* ===== FreeStyle 고객용 페이지 리뉴얼 ===== */
+:root {
+  --bg: #f7eeec;
+  --card: #ffffff;
+  --pink: #f4779a;
+  --pink-soft: #ffedf2;
+  --text: #292a32;
+  --muted: #8c8993;
+  --border: #f0e4e5;
+  --shadow: 0 5px 18px rgba(93, 66, 77, .07);
+}
 
-        /* 1캐러셀 (carousel1) */
-        .item-card.carousel1 { width: 75%; flex-shrink: 0; flex-direction: column; text-align: center; }
-        .item-card.carousel1 .item-img { width: 100%; height: 120px; }
+* {
+  box-sizing: border-box;
+  font-family: 'Apple SD Gothic Neo', 'Malgun Gothic',
+               sans-serif;
+}
 
-        /* 2캐러셀 (carousel2) */
-        .item-card.carousel2 { width: 50%; flex-shrink: 0; flex-direction: column; text-align: center; }
-        .item-card.carousel2 .item-img { width: 100%; height: 90px; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  padding: 22px 14px 50px;
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+}
 
-        .item-img { width: 55px; height: 55px; border-radius: 8px; object-fit: cover; background: #333; flex-shrink: 0; }
-        .item-info { flex-grow: 1; overflow: hidden; text-align: left; }
-        .item-card.col2 .item-info, .item-card.col3 .item-info, .item-card.carousel1 .item-info, .item-card.carousel2 .item-info { text-align: center; width: 100%; }
-        
-        .item-title { font-size: 13px; font-weight: 600; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis; }
-        
-        .footer { margin-top: 40px; font-size: 11px; color: #555; }
+.container {
+  width: 100%;
+  max-width: 480px;
+  text-align: center;
+}
 
-        /* 2026 soft editorial redesign — existing Firebase logic/layouts preserved */
-        :root { --rose:#ed7294; --rose-deep:#d94f77; --ink:#2d2930; --muted:#90838a; --paper:#fff; --line:#f2e4e7; --blush:#fff4f5; }
-        * { font-family:'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif; }
-        html { scroll-behavior:smooth; }
-        body { background:linear-gradient(165deg,#fff9f8 0%,#f9eceb 58%,#fff7f4 100%); color:var(--ink); padding:0 16px 55px; display:block; }
-        .container { max-width:510px; margin:0 auto; text-align:center; }
-        #profile-container { padding-top:53px; }
-        .profile-img { width:105px; height:105px; border-radius:50%; background:#fce5e9; border:4px solid white; box-shadow:0 6px 24px #b57e8924; margin-bottom:17px; color:var(--rose); }
-        h1 { font-size:23px; font-weight:800; letter-spacing:-.6px; margin-bottom:7px; }
-        p.sub { color:#9c8991; font-size:13px; margin-bottom:29px; line-height:1.65; }
-        .top-accent { width:42px; height:4px; border-radius:5px; background:#e9a5b6; margin:0 auto 31px; }
-        #content-list { text-align:left; }
-        .group-container { margin-bottom:27px; }
-        .group-title { font-size:13px; font-weight:750; letter-spacing:-.2px; color:#c96684; padding:0 3px 12px; border-bottom:none; margin-bottom:4px; }
-        .items-wrap { gap:10px; }
-        .item-card { background:#fff; color:var(--ink); border:1px solid #f6eeee; border-radius:16px; padding:13px; min-height:75px; gap:13px; box-shadow:0 4px 16px #8c61670d; transition:transform .2s,box-shadow .2s,border-color .2s; }
-        .item-card:hover { transform:translateY(-2px); border-color:#edb8c5; box-shadow:0 9px 24px #aa68751a; }
-        .item-card:active { transform:scale(.985); }
-        .item-img { width:58px; height:58px; border-radius:11px; background:#f8eeee; }
-        .item-info { min-width:0; }
-        .item-title { font-size:13px; font-weight:650; letter-spacing:-.3px; line-height:1.5; overflow-wrap:anywhere; }
-        .item-card:not(.col2):not(.col3):not(.carousel1):not(.carousel2)::after { content:'›'; color:#b5a3a9; font-size:25px; font-weight:300; margin-left:auto; padding-right:3px; }
-        .item-card.col2,.item-card.col3,.item-card.carousel1,.item-card.carousel2 { border-radius:15px; }
-        .item-card.col2 .item-img,.item-card.carousel2 .item-img { height:112px; }
-        .item-card.col3 .item-img { height:75px; }
-        .item-card.carousel1 .item-img { height:150px; }
-        .items-wrap.carousel { padding:5px 1px 13px; scroll-snap-type:x mandatory; }
-        .items-wrap.carousel .item-card { scroll-snap-align:start; }
-        .items-wrap.carousel::-webkit-scrollbar-thumb { background:#dfbac4; }
-        .footer { font-size:11px; color:#b8a3a9; margin-top:44px; }
-        .empty-state { text-align:center; color:var(--muted); padding:32px 10px; background:#fff; border-radius:16px; }
-        @media (min-width:700px) { body { padding-top:32px; } .container { background:#fff9f9a8; border:1px solid #faeeee; border-radius:32px; padding:0 25px 25px; box-shadow:0 18px 55px #aa7b8817; } }
-        @media (max-width:360px) { .item-title { font-size:12px; } .item-card { padding:10px; gap:10px; } .item-img { width:52px; height:52px; } }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div id="profile-container">
-            <div class="profile-img">🔥</div>
-        </div>
-        <h1>FreeStyle 꿀템 저장소</h1>
-        <p class="sub">쇼츠에서 소개한 좋은 아이템들을 한곳에 모았어요 ♡</p>
-        <div class="top-accent" aria-hidden="true"></div>
+/* 프로필 */
+#profile-container {
+  padding-top: 26px;
+}
 
-        <div id="content-list">
-            <p style="color:#666;">상품을 불러오는 중...</p>
-        </div>
+.profile-img {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  margin: 0 auto 16px;
+  background: white;
+  border: 4px solid white;
+  box-shadow: 0 5px 20px rgba(0,0,0,.08);
+  object-fit: cover;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--pink);
+}
 
-        <div class="footer">© 2026 FreeStyle. All rights reserved.</div>
-    </div>
+h1 {
+  color: #262630;
+  font-size: 23px;
+  font-weight: 800;
+  letter-spacing: -.6px;
+  margin-bottom: 9px;
+}
 
-    <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyCMy4vdbdLd26v8l2kGTsCW-IZaGklqwLs",
-            authDomain: "freestyle-db-becce.firebaseapp.com",
-            projectId: "freestyle-db-becce",
-            storageBucket: "freestyle-db-becce.firebasestorage.app",
-            messagingSenderId: "811035384445",
-            appId: "1:811035384445:web:490ffeb5f09cb763f0ef14",
-            measurementId: "G-FY7T44KY7D"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
+p.sub {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.7;
+  margin-bottom: 34px;
+}
 
-        db.ref('settings/profileImg').on('value', function(snapshot) {
-            const url = snapshot.val();
-            const profileContainer = document.getElementById('profile-container');
-            if (url) {
-                profileContainer.innerHTML = '<img src="' + url + '" class="profile-img" alt="프로필 이미지">';
-            } else {
-                profileContainer.innerHTML = '<div class="profile-img">🔥</div>';
-            }
-        });
+/* 카테고리 그룹 */
+.group-container {
+  margin-bottom: 27px;
+  text-align: left;
+}
 
-        function handleItemClick(itemId, targetLink) {
-            db.ref('products/' + itemId + '/clicks').transaction(function(currentClicks) {
-                return (currentClicks || 0) + 1;
-            }, function() {
-                window.open(targetLink, '_blank');
-            });
-        }
+.group-title {
+  color: var(--pink);
+  font-size: 15px;
+  font-weight: 800;
+  margin-bottom: 13px;
+  padding: 0 3px 11px;
+  border-bottom: 1px solid #e9dbdc;
+  letter-spacing: -.3px;
+}
 
-        db.ref('products').on('value', function(snapshot) {
-            const data = snapshot.val();
-            const container = document.getElementById('content-list');
-            container.innerHTML = '';
+/* 상품 목록 */
+.items-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 11px;
+}
 
-            if (!data) {
-                container.innerHTML = '<p class="empty-state">아직 등록된 상품이 없어요 🌷</p>';
-                return;
-            }
+.items-wrap.carousel {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding-bottom: 12px;
+  scroll-snap-type: x proximity;
+}
 
-            const groups = {};
-            const groupOrder = [];
+.items-wrap.carousel::-webkit-scrollbar {
+  height: 4px;
+}
 
-            Object.keys(data).forEach(function(id) {
-                const item = data[id];
-                // active가 false인 상품은 건너뜀 (게시 안 함 옵션 반영)
-                if (item.active === false) return;
+.items-wrap.carousel::-webkit-scrollbar-thumb {
+  background: #e7cbd2;
+  border-radius: 10px;
+}
 
-                item.id = id;
-                if (!groups[item.group]) {
-                    groups[item.group] = [];
-                    groupOrder.push(item.group);
-                }
-                groups[item.group].push(item);
-            });
+/* 기본 상품 카드 */
+.item-card {
+  width: 100%;
+  min-height: 87px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 13px;
+  background: var(--card);
+  color: var(--text);
+  text-decoration: none;
+  border: 1px solid var(--border);
+  border-radius: 17px;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  transition: transform .2s, box-shadow .2s;
+}
 
-            groupOrder.reverse().forEach(function(groupName) {
-                const groupItems = groups[groupName];
-                if (!groupItems || groupItems.length === 0) return;
+.item-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(93,66,77,.12);
+}
 
-                // 순서(order) 필드 기준으로 정렬
-                groupItems.sort(function(a, b) {
-                    return (a.order || 0) - (b.order || 0);
-                });
+.item-card:active {
+  transform: scale(.99);
+}
 
-                const layout = groupItems[0].layout || 'list';
-                const isCarousel = layout.includes('carousel');
+/* 상품 이미지 */
+.item-img {
+  width: 62px;
+  height: 62px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  object-fit: cover;
+  background: #f4f4f6;
+}
 
-                const groupDiv = document.createElement('div');
-                groupDiv.className = 'group-container';
-                groupDiv.innerHTML = '<div class="group-title"></div>';
-                const groupTitleEl = groupDiv.querySelector('.group-title');
-                groupTitleEl.textContent = '✦ ' + groupName;
-                groupTitleEl.style.color = groupItems[0].groupColor || '#c96684';
+.item-info {
+  flex-grow: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-align: left;
+}
 
-                const itemsWrap = document.createElement('div');
-                itemsWrap.className = 'items-wrap ' + (isCarousel ? 'carousel' : '');
+.item-title {
+  color: #30313a;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.6;
+  letter-spacing: -.25px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
-                groupItems.forEach(function(item) {
-                    const card = document.createElement('div');
-                    let layoutClass = '';
-                    if (layout === 'col2') layoutClass = 'col2';
-                    else if (layout === 'col3') layoutClass = 'col3';
-                    else if (layout === 'carousel1') layoutClass = 'carousel1';
-                    else if (layout === 'carousel2') layoutClass = 'carousel2';
+/* 2열 배치 */
+.item-card.col2 {
+  width: calc(50% - 5.5px);
+  flex-direction: column;
+  text-align: center;
+  padding: 12px;
+  gap: 10px;
+}
 
-                    card.className = 'item-card ' + layoutClass;
-                    card.innerHTML = 
-                        '<img src="' + (item.image || 'https://via.placeholder.com/55') + '" class="item-img" loading="lazy" alt="상품 이미지">' +
-                        '<div class="item-info">' +
-                            '<div class="item-title">' + item.title + '</div>' +
-                        '</div>';
-                    
-                    card.querySelector('.item-title').textContent = item.title || '';
-                    // Legacy white text is adapted for the new white card surface.
-                    const savedColor = item.productTextColor;
-                    if (savedColor && !['#ffffff','#fff','white'].includes(savedColor.toLowerCase())) {
-                        card.querySelector('.item-title').style.color = savedColor;
-                    }
-                    card.onclick = function() {
-                        handleItemClick(item.id, item.link);
-                    };
-                    itemsWrap.appendChild(card);
-                });
+.item-card.col2 .item-img {
+  width: 100%;
+  height: 125px;
+}
 
-                groupDiv.appendChild(itemsWrap);
-                container.appendChild(groupDiv);
-            });
-        });
-    </script>
-</body>
-</html>
+/* 3열 배치 */
+.item-card.col3 {
+  width: calc(33.333% - 7.4px);
+  flex-direction: column;
+  text-align: center;
+  padding: 9px;
+  gap: 7px;
+}
+
+.item-card.col3 .item-img {
+  width: 100%;
+  height: 80px;
+}
+
+.item-card.col3 .item-title {
+  font-size: 11px;
+}
+
+/* 캐러셀 */
+.item-card.carousel1 {
+  width: 78%;
+  flex-shrink: 0;
+  flex-direction: column;
+  padding: 12px;
+  scroll-snap-align: start;
+}
+
+.item-card.carousel1 .item-img {
+  width: 100%;
+  height: 165px;
+}
+
+.item-card.carousel2 {
+  width: 49%;
+  flex-shrink: 0;
+  flex-direction: column;
+  padding: 11px;
+  scroll-snap-align: start;
+}
+
+.item-card.carousel2 .item-img {
+  width: 100%;
+  height: 115px;
+}
+
+/* 격자 카드의 제목 정렬 */
+.item-card.col2 .item-info,
+.item-card.col3 .item-info,
+.item-card.carousel1 .item-info,
+.item-card.carousel2 .item-info {
+  width: 100%;
+  text-align: center;
+}
+
+/* 카드 내부 텍스트 색상 */
+.item-card .item-title {
+  color: #30313a;
+}
+
+/* 하단 영역 */
+.footer {
+  margin-top: 43px;
+  padding: 22px 0;
+  color: #aaa0a4;
+  font-size: 11px;
+}
+
+/* 모바일 */
+@media(max-width: 380px) {
+  body {
+    padding: 15px 12px 35px;
+  }
+
+  .item-card {
+    padding: 10px;
+    gap: 11px;
+  }
+
+  .item-img {
+    width: 55px;
+    height: 55px;
+  }
+
+  .item-title {
+    font-size: 12px;
+  }
+}
