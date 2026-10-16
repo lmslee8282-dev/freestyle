@@ -645,6 +645,8 @@ function getFilteredGroups() {
 }
 
 /* 클릭 통계 기록 + 링크 이동 */
+
+/* 클릭 통계 기록 + 상품 링크 이동 */
 function handleItemClick(id, url) {
     const target = safeLink(url);
 
@@ -653,27 +655,38 @@ function handleItemClick(id, url) {
         return;
     }
 
-    // 사용자 클릭 시 즉시 이동할 수 있도록 창을 먼저 엶
-    const opened = window.open(
-        'about:blank',
-        '_blank'
-    );
+    const CLICK_API_URL =
+        'https://freestyle-click-api.lmslee8282.workers.dev/click';
+
+    // 클릭한 상품 페이지 열기
+    const opened = window.open('about:blank', '_blank');
 
     if (opened) opened.opener = null;
 
-    // 통계 기록이 실패해도 상품 링크는 열리도록 처리
-    db.ref('products/' + id + '/clicks')
-        .transaction(current => (Number(current) || 0) + 1)
-        .catch(error => {
-            console.warn('클릭 통계 기록 실패', error);
-        });
+    // Firebase에 직접 쓰지 않고 Worker를 통해 기록
+    fetch(CLICK_API_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ id }),
+        keepalive: true
+    }).then(response => {
+        if (!response.ok) {
+            console.warn('클릭 통계 기록 실패:', response.status);
+        }
+    }).catch(error => {
+        console.warn('클릭 API 연결 실패:', error);
+    });
 
+    // 통계 처리를 기다리지 않고 이동
     if (opened) {
         opened.location.replace(target);
     } else {
         window.location.href = target;
     }
 }
+
 
 /* 상품 카드 */
 function createProductCard(item, layout) {
